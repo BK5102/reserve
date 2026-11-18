@@ -172,114 +172,114 @@ def simulate(cfg: SimConfig) -> Simulation:
             share = forb_part[event_age[has_event] - 1] / hazard[event_age[has_event] - 1]
             forb_flag[has_event] = rng.random(has_event.sum()) < share
 
-        for i, lid in enumerate(ids):
-            e, x = int(event_age[i]), int(exit_age[i])
-            orig_rows.append(_orig_row(lid, vintage, qend, rng))
-            event_rows.append(
-                {"loan_id": lid, "vintage": vintage, "event_age": e if e > 0 else None}
+        orig_rows.append(_orig_frame(ids, vintage, qend, rng))
+        event_rows.append(
+            pl.DataFrame({"loan_id": ids, "vintage": vintage, "event_age": event_age}).with_columns(
+                pl.when(pl.col("event_age") > 0).then(pl.col("event_age")).alias("event_age")
             )
-            perf_parts.append(
-                _perf_rows(
-                    lid,
-                    qend,
-                    max_age,
-                    e,
-                    x,
-                    bool(cures[i]),
-                    int(later_prepay[i]),
-                    bool(forb_flag[i]),
-                    cfg,
-                )
+        )
+        perf_parts.append(
+            _perf_frame(
+                ids, qend, max_age, event_age, exit_age, cures, later_prepay, forb_flag, cfg
             )
+        )
 
-    orig = pl.DataFrame(orig_rows)
+    orig = pl.concat(orig_rows)
     perf = pl.concat(perf_parts)
     truth = pl.concat(truth_parts)
-    loan_events = pl.DataFrame(event_rows, schema_overrides={"event_age": pl.Int64})
+    loan_events = pl.concat(event_rows)
     return Simulation(cfg, orig, perf, truth, loan_events, synthetic_macro(cfg, rng))
 
 
-def _orig_row(lid: str, vintage: str, qend: int, rng: np.random.Generator) -> dict:
-    first_pay = months.from_index(qend + 1)
-    return {
-        "loan_id": lid,
-        "vintage": vintage,
-        "credit_score": int(rng.integers(620, 820)),
-        "first_payment_date": first_pay,
-        "maturity_date": months.from_index(qend + 360),
-        "orig_upb": float(rng.integers(80, 400) * 1000),
-        "orig_ltv": int(rng.integers(60, 96)),
-        "orig_interest_rate": round(float(rng.uniform(3.0, 7.5)), 3),
-        "orig_loan_term": 360,
-        "amortization_type": "FRM",
-        "loan_purpose": "P",
-        "occupancy_status": "P",
-        "property_state": "ZZ",  # not a real state: marks the record as synthetic
-        "seller_name": "SYNTHETIC",
-        "vantage_score_4": 9999,
-    }
-
-
-def _perf_rows(
-    lid: str,
-    qend: int,
-    max_age: int,
-    event: int,
-    prepay_exit: int,
-    cures: bool,
-    later_prepay: int,
-    forbearance: bool,
-    cfg: SimConfig,
-) -> pl.DataFrame:
-    """Monthly rows from age 1 to the loan's exit or the data end."""
-    dlq = []
-    zbc: list[int | None] = []
-    if event > 0:
-        if cures:
-            last = min(max_age, event + 1 + later_prepay)
-        else:
-            last = min(max_age, event + cfg.months_to_disposition)
-    elif prepay_exit > 0:
-        last = prepay_exit
-    else:
-        last = max_age
-    for a in range(1, last + 1):
-        if event > 0 and event - 2 <= a <= event:
-            d = 3 - (event - a)
-        elif event > 0 and a > event and not cures:
-            d = 3 + (a - event)
-        else:
-            d = 0
-        dlq.append(f"{d:02d}")
-        zbc.append(None)
-    if event > 0 and not cures and last == event + cfg.months_to_disposition:
-        zbc[-1] = 9  # REO disposition
-    elif (event > 0 and cures and last == event + 1 + later_prepay) or (
-        event <= 0 and prepay_exit > 0
-    ):
-        zbc[-1] = 1  # prepaid
-    ages = list(range(1, last + 1))
-    periods = [months.from_index(qend + a) for a in ages]
-    bap = ["F" if forbearance and a == event else None for a in ages]
+def _orig_frame(ids: list[str], vintage: str, qend: int, rng: np.random.Generator) -> pl.DataFrame:
+    n = len(ids)
     return pl.DataFrame(
         {
-            "loan_id": lid,
-            "period": periods,
-            "current_upb": [0.0 if z is not None else 100000.0 for z in zbc],
+            "loan_id": ids,
+            "vintage": vintage,
+            "credit_score": rng.integers(620, 820, n),
+            "first_payment_date": months.from_index(qend + 1),
+            "maturity_date": months.from_index(qend + 360),
+            "orig_upb": rng.integers(80, 400, n).astype(float) * 1000,
+            "orig_ltv": rng.integers(60, 96, n),
+            "orig_interest_rate": np.round(rng.uniform(3.0, 7.5, n), 3),
+            "orig_loan_term": 360,
+            "amortization_type": "FRM",
+            "loan_purpose": "P",
+            "occupancy_status": "P",
+            "property_state": "ZZ",  # not a real state: marks the record as synthetic
+            "seller_name": "SYNTHETIC",
+            "vantage_score_4": 9999,
+        }
+    )
+
+
+def _perf_frame(
+    ids: list[str],
+    qend: int,
+    max_age: int,
+    event: np.ndarray,
+    prepay_exit: np.ndarray,
+    cures: np.ndarray,
+    later_prepay: np.ndarray,
+    forbearance: np.ndarray,
+    cfg: SimConfig,
+) -> pl.DataFrame:
+    """Monthly rows for one vintage, from age 1 to each loan's exit or the data end.
+
+    Before an event: status 00, then 01, 02, 03 in the two months before and at the event.
+    After it: cured loans return to 00 and later prepay; the rest go 04, 05, ... and are
+    disposed of (code 09) `months_to_disposition` months after the event.
+    """
+    has_event = event > 0
+    cure_end = event + 1 + later_prepay
+    dispose_end = event + cfg.months_to_disposition
+    natural_end = np.where(
+        has_event,
+        np.where(cures, cure_end, dispose_end),
+        np.where(prepay_exit > 0, prepay_exit, max_age),
+    )
+    last = np.minimum(natural_end, max_age)
+    loan = np.repeat(np.arange(len(ids)), last)
+    start = np.repeat(np.cumsum(last) - last, last)
+    age = np.arange(loan.size) - start + 1
+    e = event[loan]
+    ev = has_event[loan]
+    cure = cures[loan]
+    dlq = np.zeros(loan.size, dtype=np.int64)
+    ramp = ev & (age >= e - 2) & (age <= e)
+    dlq[ramp] = 3 - (e[ramp] - age[ramp])
+    worse = ev & (age > e) & ~cure
+    dlq[worse] = 3 + (age[worse] - e[worse])
+    is_last = age == last[loan]
+    ended = (natural_end <= max_age)[loan] & is_last
+    zbc = np.where(
+        ended & ev & ~cure, 9, np.where(ended & (ev & cure | ~ev & (prepay_exit[loan] > 0)), 1, 0)
+    )
+    period_idx = qend + age
+    df = pl.DataFrame(
+        {
+            "loan_id": pl.Series(ids).gather(loan),
+            "_pidx": period_idx,
             "dlq_status": dlq,
-            "loan_age": ages,
-            "zero_balance_code": zbc,
-            "zero_balance_date": [
-                p if z is not None else None for p, z in zip(periods, zbc, strict=True)
-            ],
-            "borrower_assistance_plan": bap,
-            "servicer_name": "SYNTHETIC",
-        },
-        schema_overrides={
-            "zero_balance_code": pl.Int64,
-            "zero_balance_date": pl.Date,
-            "borrower_assistance_plan": pl.String,
-        },
+            "loan_age": age,
+            "_zbc": zbc,
+            "_bap": forbearance[loan] & (age == e),
+        }
+    )
+    return df.select(
+        "loan_id",
+        months.expr_from_index(pl.col("_pidx")).alias("period"),
+        pl.when(pl.col("_zbc") > 0).then(0.0).otherwise(100000.0).alias("current_upb"),
+        pl.col("dlq_status").cast(pl.String).str.zfill(2),
+        "loan_age",
+        pl.when(pl.col("_zbc") > 0).then(pl.col("_zbc")).otherwise(None).alias("zero_balance_code"),
+        pl.when(pl.col("_zbc") > 0)
+        .then(months.expr_from_index(pl.col("_pidx")))
+        .otherwise(None)
+        .alias("zero_balance_date"),
+        pl.when(pl.col("_bap")).then(pl.lit("F")).otherwise(None).alias("borrower_assistance_plan"),
+        pl.lit("SYNTHETIC").alias("servicer_name"),
     )
 
 

@@ -59,3 +59,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** waiting for the real data. Rejected: everything except the data itself can be tested now.
 - **Cause and effect:** the tests show the vintage builder finds every fake loan's event month exactly and the curves match the known truth within random noise. The simulator is never used for a result.
 - **How to say it:** "Before touching real data I built a simulator with a known answer and checked that my pipeline recovers it, the way you test a scale with a known weight."
+
+### Step 6. Check whether the data can answer the question before modeling
+
+- **What I did:** wrote a data-fit script that measures, for each quarter's loans, how many go bad by month 12 compared with random noise, whether a simple average is already as good as it gets, whether the 2007 to 2009 recession and the COVID period are covered, whether all counts reconcile, and how large an advantage the test could detect.
+- **Why:** in Tells, two popular datasets turned out unable to test the idea at all, which only measurement revealed. The gate (60 usable quarters, 20 events by month 12) is agreed before seeing real data.
+- **What else I considered:** going straight to models. Rejected for that reason.
+- **Cause and effect:** on synthetic data the script fails the events rule, as designed for thin data, and finds the recession and forbearance windows. It also shows the test period has only about six independent years, so only a large advantage could be detected; that is stated before any result.
+- **How to say it:** "Before building models I measured whether the data could even answer the question, including how big an effect the test could detect, so a null result would not be over-read."

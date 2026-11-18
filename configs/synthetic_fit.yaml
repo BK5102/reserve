@@ -1,0 +1,12 @@
+# Synthetic portfolio for proving scripts/check_data_fit.py works. NOT real data.
+# Spans the 2007-2009 recession window and a COVID-style forbearance window so every
+# check has something to measure. Sized like the Freddie Mac sample (about 12,500 loans
+# per quarter would be real-sized; 600 keeps the run to seconds).
+synthetic:
+  first_vintage: "1999Q1"
+  n_vintages: 92
+  loans_per_vintage: 600
+  data_end: "2022-06"
+  seed: 11
+  forbearance_start: "2020-04"
+  forbearance_end: "2021-06"

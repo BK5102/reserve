@@ -29,3 +29,7 @@ The macro loader fetches unemployment, the 30-year mortgage rate, and a house pr
 ### D6. A synthetic portfolio with known answers
 
 The simulator writes fake loans in the exact Freddie Mac layout from a known rule (an age curve, a vintage quality effect, a seasonal wave, and unemployment with a recession shock), so the true answer is known and tests can check that the pipeline finds it. It is used only to test the plumbing and never for a result. Analogy: a pilot practising in a flight simulator where the instructor knows exactly where the wind will come from.
+
+### D7. A data-fit check before any model
+
+`scripts/check_data_fit.py` measures whether the data can answer the question: loans and events per vintage against random noise, whether a simple class average is already as good as possible, recession and COVID coverage, reconciliation counts, and how big an advantage the test could detect. It runs on synthetic data now, where it correctly fails the events rule, and is ready for the real files the day they are downloaded; `docs/data-fit.md` marks every real number as pending. Analogy: checking that a thermometer can read the range you care about before using it to judge a fever.

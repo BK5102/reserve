@@ -74,7 +74,7 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 - Why: 90 days late is the usual "serious delinquency" line and comes before most defaults, so it is the early-warning signal a lender watches. Adding the credit-related exits catches loans that were sold or settled before reaching 90 days. Counting only the first time makes the curve cumulative: it can only go up, like a class's share of students who have ever failed a course. The owner approved this target (NEXT_PROJECTS_PLAN.md, decision 3).
 - Why code 15 counts: Freddie Mac computes Actual Loss for codes 02, 03, 09, and 15 only (User Guide, "Actual Loss"), which marks 15 as a credit event. Code 16 (reperforming loan securitization) and 96 (defect) are not counted as events; a loan's earlier 90-day delinquency, if any, is already counted.
 - Considered: 60+ days (more events, but more loans cure); "currently 90+" (goes up and down, so it is not a clean curve); default only (fewer events, and the timing depends on slow foreclosure processes).
-- Limitation: during COVID forbearance in 2020 and 2021, borrowers who paused payments with permission could still be reported as delinquent, so the event then partly measures forbearance rather than distress. Those months are excluded from the headline (M12).
+- Limitation: during COVID forbearance in 2020 and 2021, borrowers who paused payments with permission could still be reported as delinquent, so the event then partly measures forbearance rather than distress. Those months are excluded from the headline (M20).
 
 **M8. Vintage age counts months since the end of the origination quarter, not each loan's own age.**
 - What: age 1 of vintage 2005Q1 is calendar month 2005-04 for every loan in it. Any event recorded before age 1 is counted at age 1.
@@ -150,6 +150,30 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 6. Data fit
+
+**M19. Measure whether the data can answer the question before building models on it.**
+- What: `scripts/check_data_fit.py` reports, for a folder of Freddie Mac sample files: each file's detected layout and row count; loans per origination quarter; cumulative events by age 12 per vintage and their relative binomial standard error; whether a simple class-average forecast is already at the noise floor; recession coverage; the COVID forbearance check (M20); every reconciliation count; power (M21); the latest month available; and, with saved FRED tables, each macro series' first observation, number of ALFRED vintages, and missing values.
+- Gate (from NEXT_PROJECTS_PLAN.md): at least 60 usable vintages, and at least 20 events per vintage by age 12. "Usable" means observed through age 24 (12 months of history plus a 12-month forecast). The plan's "20 events per cell at age 12" is applied to the median usable vintage's cumulative events by age 12, because the target is cumulative and single-month counts at age 12 are far smaller; the share of vintages meeting 20 and the single-month counts are reported next to it.
+- Noise-floor check: for each vintage, the 12-month increment from age 12 to 24 is forecast by the mean increment of the previous four vintages, and the root mean squared error is divided by the binomial standard deviation of the increment. A ratio near 1 means even a perfect model would gain little, the same trap as Tells' TabFormer ceiling.
+- Why: Tells' biggest lesson was that two popular datasets could not test its idea at all, which only measurement revealed (Tells `docs/data-fit.md`).
+- Considered: going straight to models on the sample. Rejected for that reason.
+- Limitation: run so far only on synthetic data (`docs/data-fit.md`). The 20-event rule and the four-vintage class average are judgment calls, both settings in `FitSettings`.
+
+**M20. The COVID forbearance check, and why 2020 to 2021 is excluded from the headline.**
+- What: for events dated 2020-03 to 2021-12, the check reports how many there were, the share flagged as forbearance (Borrower Assistance Plan "F" or Delinquency Due to Disaster "Y" in the event month; both fields are populated from January 2014 per the User Guide), and the largest monthly event count against the 2019 monthly mean.
+- Why: under COVID relief, borrowers could pause payments with permission and still be reported as delinquent, so a spike in "90+ days late" then measures relief uptake as much as distress. Like the end-of-file artifact Tells removed from AMLWorld, it would reward a model for learning a one-off pattern. The owner approved excluding 2020 to 2021 from the headline and keeping the 2007 to 2009 recession descriptive (NEXT_PROJECTS_PLAN.md, decision 4).
+- Considered: dropping only forbearance-flagged events. Rejected for the headline: the flags may be incomplete, and unflagged loans were also affected by moratoria; it is kept as a possible sensitivity check.
+- Limitation: the share flagged is only as good as servicer reporting, which is unverified until real data is read.
+
+**M21. Power is reported as a minimum detectable effect in standard-deviation units.**
+- What: MDE = (z(1 - alpha / (2m)) + z(power)) / sqrt(n), with alpha 0.05, power 0.8, and m = 3 comparisons (Bonferroni as a conservative stand-in for Holm). n is reported twice: the number of quarterly test origins from 2013-03 to 2018-12 whose 12-month target is observed (24), and the number of non-overlapping 12-month windows in that span (6). The truth lies between: forecasts from origins less than 12 months apart share outcome months.
+- Why: it says in advance how large a consistent advantage would have to be before the test could see it, so a null result is not over-read. Analogy: before a race, know how many seconds apart two runners must be for your stopwatch to tell them apart.
+- Considered: a simulation-based power analysis on the synthetic portfolio. Deferred: it would only describe the simulator.
+- Limitation: the MDE is in units of the standard deviation of per-origin loss differences, which is unknown until models run. With 6 independent windows, only a large effect (about 1.3 standard deviations) is reliably detectable. The test window (2013-03 to 2018-12) is from the agreed plan.
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -161,7 +185,7 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L3 | Cleanroom v0.1 lacks forecast tools | Local stand-ins could differ from the shared versions | Marked `TODO(cleanroom-v0.2)`; switch when the tag exists (M30) |
 | L4 | Legacy (pre-Release-47) file layout partly unverified | Older downloads could be misread | Layout detected from field 31 and the field count; flagged in M5; check a real legacy file first |
 | L5 | Loader tested only on hand-built fake records | Real-file quirks are unknown | `check_data_fit.py` reports the layout, counts, and reconciliation on the first real run |
-| L6 | COVID forbearance shows up as delinquency in 2020 and 2021 | The event then partly measures permitted payment pauses | Forbearance share measured by the data-fit check; those months excluded from the headline (M12) |
+| L6 | COVID forbearance shows up as delinquency in 2020 and 2021 | The event then partly measures permitted payment pauses | Forbearance share measured by the data-fit check; those months excluded from the headline (M20) |
 | L7 | Vintage age is calendar-aligned, not loan-level | Loans in a quarter differ by up to two months in true age | Stated (M8); the alternative breaks the exact "known at t" property |
 | L8 | Curves by original count mix credit and prepayment speed | Fast-prepaying vintages look better partly because fewer loans stayed exposed | Stated (M9); the hazard model uses at-risk counts instead |
 | L9 | Events before Freddie Mac acquires a loan are not observed | A few early events could be missed | Data-fit check reports loans first seen after age 1 |
@@ -169,3 +193,5 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L11 | Latest mode leaks revisions | Forecasts could use revised values unknown at the time | As-of mode by default; latest mode sets `revisions_ignored` on every row and result (M15) |
 | L12 | ALFRED vintage coverage and the "." missing marker are unverified | As-of mode may have gaps for early years | Checked by the data-fit script once the FRED key exists (M14) |
 | L13 | Simulator is far simpler than real mortgages | Pipeline checks on it say nothing about real performance | Used only for tests and pipeline checks; never in findings (M17) |
+| L14 | Only about 6 independent 12-month windows in the test period | Small real gains may be undetectable | MDE reported before any result (M21); negative results stay in |
+| L15 | The events gate and noise-floor settings are judgment calls | A borderline dataset could pass or fail on the setting | All settings in `FitSettings`, reported in every data-fit output |
