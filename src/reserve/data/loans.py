@@ -338,9 +338,9 @@ def find_sample_files(raw_dir: str | Path) -> list[tuple[int, Path, Path]]:
     return out
 
 
-def _format_value(field: Field) -> pl.Expr:
+def _format_value(field: Field, dtype: pl.DataType) -> pl.Expr:
     col = pl.col(field.name)
-    if field.kind == "yyyymm":
+    if field.kind == "yyyymm" and dtype.is_temporal():
         col = col.dt.strftime("%Y%m")
     return col.cast(pl.String).fill_null("").alias(field.name)
 
@@ -360,6 +360,6 @@ def write_file(df: pl.DataFrame, path: str | Path, kind: str, layout: str = "cur
         out = out.with_columns(
             pl.col("zero_balance_code").cast(pl.String).str.zfill(2).alias("zero_balance_code")
         )
-    out = out.select(_format_value(f) for f in fields)
+    out = out.select(_format_value(f, out.schema[f.name]) for f in fields)
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     out.write_csv(path, separator="|", include_header=False, quote_style="never")

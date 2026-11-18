@@ -25,3 +25,7 @@ Each origination quarter becomes a curve: the share of its original loans that h
 ### D5. Macro series as they were known at the time
 
 The macro loader fetches unemployment, the 30-year mortgage rate, and a house price index from FRED, including every past version of each series from the ALFRED archive, and gives each forecast month only the numbers that had been published by the end of that month. If only today's numbers are available, it uses fixed publication delays and labels every row "revisions ignored". Tests replay a fake recorded response file, so they never call the network or need a key, and a leak test proves that deleting or corrupting anything published later does not change any feature. Analogy: judging an investor on the newspaper they could read that day, not on the corrected edition printed a month later.
+
+### D6. A synthetic portfolio with known answers
+
+The simulator writes fake loans in the exact Freddie Mac layout from a known rule (an age curve, a vintage quality effect, a seasonal wave, and unemployment with a recession shock), so the true answer is known and tests can check that the pipeline finds it. It is used only to test the plumbing and never for a result. Analogy: a pilot practising in a flight simulator where the instructor knows exactly where the wind will come from.

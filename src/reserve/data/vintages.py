@@ -66,14 +66,14 @@ def loan_outcomes(orig: pl.DataFrame, perf: pl.DataFrame, cutoff=None) -> pl.Dat
         | pl.col("reo_acquired").fill_null(False)
         | zb.is_in(DEFAULT_ZERO_BALANCE).fill_null(False)
     )
-    forbearance = (pl.col("borrower_assistance_plan") == "F").fill_null(False) | (
-        pl.col("disaster_delinquency") == "Y"
-    ).fill_null(False)
-    has_flags = {"borrower_assistance_plan", "disaster_delinquency"} <= set(perf.columns)
-    perf = perf.with_columns(
-        is_event.alias("_event"),
-        (forbearance if has_flags else pl.lit(False)).alias("_forb"),
-    )
+    # Forbearance at the event month: Borrower Assistance Plan "F" or Delinquency Due to
+    # Disaster "Y", whichever of the two columns the data has (methodology M20).
+    forbearance = pl.lit(False)
+    if "borrower_assistance_plan" in perf.columns:
+        forbearance = forbearance | (pl.col("borrower_assistance_plan") == "F").fill_null(False)
+    if "disaster_delinquency" in perf.columns:
+        forbearance = forbearance | (pl.col("disaster_delinquency") == "Y").fill_null(False)
+    perf = perf.with_columns(is_event.alias("_event"), forbearance.alias("_forb"))
     per_loan = perf.group_by("loan_id").agg(
         pl.col("period").min().alias("first_obs_period"),
         pl.col("period").max().alias("last_obs_period"),

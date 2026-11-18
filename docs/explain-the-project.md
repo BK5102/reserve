@@ -51,3 +51,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** using today's numbers with a publication delay. Kept only as a fallback that labels every row "revisions ignored".
 - **Cause and effect:** a leak test deletes or corrupts everything published after each month and checks that nothing changes. Tests run on a fake recorded response, so they need no key and no network. The real download waits on a free FRED key.
 - **How to say it:** "Every macro input is what was published by the forecast date, taken from the Fed's archive of past data versions, and a test proves that later revisions cannot leak in."
+
+### Step 5. Build a fake portfolio where the right answer is known
+
+- **What I did:** wrote a simulator that creates fake loans in the exact Freddie Mac format, from a rule I chose: risk rises with loan age to a peak, varies by vintage, has a small season, and jumps when unemployment rises in a fake recession.
+- **Why:** with no real data yet, it is the only way to check that the pipeline computes what it claims. Because I wrote the rule, I know the true answer.
+- **What else I considered:** waiting for the real data. Rejected: everything except the data itself can be tested now.
+- **Cause and effect:** the tests show the vintage builder finds every fake loan's event month exactly and the curves match the known truth within random noise. The simulator is never used for a result.
+- **How to say it:** "Before touching real data I built a simulator with a known answer and checked that my pipeline recovers it, the way you test a scale with a known weight."

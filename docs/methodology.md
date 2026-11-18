@@ -133,6 +133,23 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 5. Synthetic data
+
+**M17. A synthetic portfolio with known answers, used only for tests and pipeline checks, never for a headline.**
+- What: `src/reserve/data/synthetic.py` writes fake loans in the exact Freddie Mac file layout (current release), plus FRED-style macro tables and the true expected curves. Every synthetic record is marked: seller and servicer "SYNTHETIC", property state "ZZ".
+- Why: no real data exists yet, and a simulator whose true answer is known is the only way to check that the pipeline computes what it claims. Tells used real public benchmark data; Reserve cannot until the owner registers.
+- Considered: waiting for real data before building anything. Rejected: the loader, builder, models, and checks can all be tested now, and the data-fit check is ready the day the files arrive.
+- Limitation: a simulator only contains the patterns written into it. A model that wins on synthetic data proves the plumbing works, nothing about real loans. No synthetic number appears in `docs/findings.md`.
+
+**M18. The simulator's true hazard has age, season, cohort, and macro parts, plus a recession shock.**
+- What: an event-free, active loan of vintage v at vintage age a in month p goes 90+ days late with chance exp(base + age(a) + season(p) + cohort(v) + beta x (unemployment(p) - 5)), capped at 0.5. `age(a)` is a hump peaking at 30 months and zero chance below age 3; `cohort(v)` is a random vintage quality effect (sd 0.25); season is a small yearly wave; unemployment is 5% plus a recession bump (+5 points peaking 2009-10 by default). Loans also prepay with a fixed 1.5% monthly chance. After an event, 30% cure and the rest are disposed of six months later (zero balance code 09).
+- Known answers, each tested: the vintage builder recovers every loan's simulated event age exactly; observed events by age 24 are within binomial noise of the exact expected curve; the true hazard ratio between recession peak and a calm month equals exp(beta x rise) after removing the seasonal part; a forbearance window produces events flagged "F".
+- Unemployment is published FRED-style: first with noise, then revised a month later, so as-of features differ from the truth just as real first releases do.
+- Considered: an aggregate-only simulator that produces curves directly. Rejected: it would skip the loader and the builder, which most need testing.
+- Limitation: prepayment does not depend on rates, and there are no regional effects. Both are simplifications of real mortgages.
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -151,3 +168,4 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L10 | National macro series only | Regional shocks are missed | Stated (M13); state-level series deferred |
 | L11 | Latest mode leaks revisions | Forecasts could use revised values unknown at the time | As-of mode by default; latest mode sets `revisions_ignored` on every row and result (M15) |
 | L12 | ALFRED vintage coverage and the "." missing marker are unverified | As-of mode may have gaps for early years | Checked by the data-fit script once the FRED key exists (M14) |
+| L13 | Simulator is far simpler than real mortgages | Pipeline checks on it say nothing about real performance | Used only for tests and pipeline checks; never in findings (M17) |
