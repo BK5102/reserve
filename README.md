@@ -87,3 +87,11 @@ The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tr
 ## Not built yet
 
 Real runs of the second and third TSFMs (Chronos-2 and TimesFM 2.5 are stubs), TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, slice analysis, and any live agent run (PLAN.md Part 6).
+
+## Related projects
+
+Part of a three-project series that shares one evaluation toolkit, the Cleanroom:
+
+- [Tells](https://github.com/BK5102/tells): does a time series foundation model help a bank-style fraud model at a fixed daily review budget? Home of the [Cleanroom](https://github.com/BK5102/tells/tree/main/packages/cleanroom).
+- [Reserve](https://github.com/BK5102/reserve): do foundation models forecast mortgage delinquency curves better than classical methods?
+- [Culprit](https://github.com/BK5102/culprit): do foundation models catch payment approval drops sooner, and can an LLM agent find the cause?
