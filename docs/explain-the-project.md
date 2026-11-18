@@ -23,7 +23,7 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What I did:** set up the project (uv, ruff, pytest, CI on Python 3.11 and 3.12) and installed the Cleanroom, the honest-testing toolkit built in my Tells project, from a fixed git tag.
 - **Why:** the same toolkit across projects means the same exam rules everywhere, and a fix in one place fixes all of them.
 - **What else I considered:** copying the toolkit into this repo. Rejected because copies drift apart.
-- **Cause and effect:** the tagged version (v0.1) does not yet have forecasting tools (forecast losses, rolling forecast start points). Reserve has small local stand-ins marked to be replaced when v0.2 is tagged.
+- **Cause and effect:** the first tag (v0.1) had no forecasting tools. Version 0.2 added them (forecast scores, a statistical test for comparing forecasters, rolling forecast start dates, an as-of join), and Reserve moved to it before writing its own versions, so there are none to drift.
 - **How to say it:** "I reuse one tested evaluation toolkit across my projects, pinned to a version, so every project sits the same honest exam."
 
 ## Part 2. Data

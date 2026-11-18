@@ -26,6 +26,7 @@ from typing import Any, Protocol
 
 import numpy as np
 import polars as pl
+from cleanroom.asof import join_as_known
 
 from reserve import months
 
@@ -175,14 +176,15 @@ def fetch_observations(client: FredClient, series_id: str, realtime: bool = True
 def as_of(obs: pl.DataFrame, when: date) -> pl.DataFrame:
     """The series as it was published on date `when`: one row per observation date.
 
-    An observation counts only if a vintage containing it started on or before `when`.
+    Uses the shared `cleanroom.asof.join_as_known`: for each observation date, the latest
+    release whose `realtime_start` is on or before `when` (`inclusive=True`, because a
+    FRED vintage date is the day the value was available). A latest release of "." means
+    the value was not available then, so the date is left out.
     """
-    return (
-        obs.filter((pl.col("realtime_start") <= when) & (pl.col("realtime_end") >= when))
-        .filter(pl.col("value").is_not_null())
-        .select("date", "value")
-        .sort("date")
+    known = join_as_known(
+        obs, "date", "value", "realtime_start", when, at_col="as_of", inclusive=True
     )
+    return known.filter(pl.col("value").is_not_null()).select("date", "value").sort("date")
 
 
 def latest_with_lag(obs: pl.DataFrame, series: Series, month: date) -> pl.DataFrame:

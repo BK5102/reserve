@@ -26,12 +26,11 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 - Considered: planning a GPU run for larger TSFMs. Rejected by the owner (NEXT_PROJECTS_PLAN.md, decision 6).
 - Limitation: larger TSFMs may be too slow to run on every origin; the small Chronos-Bolt-tiny model is the first TSFM for that reason (M27).
 
-**M4. The Cleanroom is imported from the Tells repo at tag `cleanroom-v0.1`, never copied.**
-- What: `pyproject.toml` pins `cleanroom` to the git tag `cleanroom-v0.1` (subdirectory `packages/cleanroom`). Reserve uses its `split`, `lock`, `provenance`, and `stats` modules.
+**M4. The Cleanroom is imported from the Tells repo at tag `cleanroom-v0.2`, never copied.**
+- What: `pyproject.toml` pins `cleanroom` to the git tag `cleanroom-v0.2` (subdirectory `packages/cleanroom`). Reserve uses `split` (Split, Window, `rolling_origins`), `asof` (`join_as_known`), `forecast` (pinball loss, weighted quantile loss, interval coverage, interval score, relative error), `stats` (Diebold-Mariano with the Harvey-Leybourne-Newbold correction, Holm), `lock` and `guard` (sealed runs), and `provenance`.
 - Why: one shared, tested toolkit means a leak fix in one project fixes all three (Tells `docs/decisions.md` D1).
-- Considered: copying the code. Rejected: copies drift.
-- Limitation: v0.1 lacks forecast losses, a Diebold-Mariano test, rolling origins, and an as-of join. Reserve has small local stand-ins for the first three pieces it needs now, each marked `TODO(cleanroom-v0.2)` (M30).
-
+- Considered: copying the code. Rejected: copies drift. Reserve started on `cleanroom-v0.1`, which lacked the forecasting pieces; it was bumped to v0.2 on 2026-11-17, as soon as the tag existed, before any local stand-in was written.
+- Limitation: Reserve's behaviour now depends on a package in another repo. The tag is fixed, so it changes only when Reserve bumps it on purpose.
 ---
 
 ## 2. Loading the loan files
@@ -115,6 +114,7 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 **M14. As-of mode: every forecast uses the version of each series that was published by the end of the forecast month.**
 - What: one API request per series asks for every vintage (`realtime_start=1776-07-04`, `realtime_end=9999-12-31`, [FRED API docs](https://fred.stlouisfed.org/docs/api/fred/series_observations.html)). Each row then carries the dates during which that value was the published one. For month t, Reserve keeps the rows valid on the last day of t, so a later revision cannot leak back. This is the "as-of join".
 - Why: unemployment and house prices are revised after first release. Using today's revised numbers would give a forecast information nobody had at the time (CLAUDE.md rule 1). Analogy: grading a weather forecaster against the radar they actually had that morning, not a cleaned-up map from a week later.
+- How: the selection is the shared `cleanroom.asof.join_as_known` (latest release per observation date whose release date is on or before the query date; `inclusive=True` because a FRED vintage date is the day the value became available). A latest release of "." counts as not available.
 - Considered: downloading one request per forecast date with `vintage_dates`; more requests for the same result.
 - Limitation: FRED's missing-value marker is "." in practice, but the API page does not say so (unverified; the parser treats "." as missing). Whether ALFRED vintages exist for every month of every series back to 1999 is unverified until the key exists.
 
@@ -182,7 +182,7 @@ The honest list. Each item says what could be wrong and what was done about it.
 |---|---|---|---|
 | L1 | No real data yet | Nothing about real loans is known; all checks ran on synthetic data | Stated everywhere; `scripts/check_data_fit.py` is ready to run once the owner registers |
 | L2 | Prime, conforming fixed-rate mortgages only | Results do not cover subprime, cards, or auto loans | Stated up front (M2) |
-| L3 | Cleanroom v0.1 lacks forecast tools | Local stand-ins could differ from the shared versions | Marked `TODO(cleanroom-v0.2)`; switch when the tag exists (M30) |
+| L3 | Evaluation tools live in another repo | A Cleanroom bug would affect Reserve | Pinned to a tag; bumped only on purpose (M4) |
 | L4 | Legacy (pre-Release-47) file layout partly unverified | Older downloads could be misread | Layout detected from field 31 and the field count; flagged in M5; check a real legacy file first |
 | L5 | Loader tested only on hand-built fake records | Real-file quirks are unknown | `check_data_fit.py` reports the layout, counts, and reconciliation on the first real run |
 | L6 | COVID forbearance shows up as delinquency in 2020 and 2021 | The event then partly measures permitted payment pauses | Forbearance share measured by the data-fit check; those months excluded from the headline (M20) |

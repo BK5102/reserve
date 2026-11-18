@@ -37,10 +37,8 @@ build-backend = "hatchling.build"
 packages = ["src/reserve"]
 
 [tool.uv.sources]
-# TODO(cleanroom-v0.2): bump this tag to cleanroom-v0.2 once it is released, then
-# switch the local stand-ins listed in docs/methodology.md M30 (rolling origins,
-# forecast losses, as-of join) to the Cleanroom versions and delete them here.
-cleanroom = { git = "https://github.com/BK5102/tells", tag = "cleanroom-v0.1", subdirectory = "packages/cleanroom" }
+# The shared Cleanroom, pinned to a release tag of the Tells repo. Bump on purpose only.
+cleanroom = { git = "https://github.com/BK5102/tells", tag = "cleanroom-v0.2", subdirectory = "packages/cleanroom" }
 torch = [{ index = "pytorch-cpu" }]
 
 # CPU-only PyTorch wheels: much smaller, and the project is CPU only (methodology M3).

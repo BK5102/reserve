@@ -33,3 +33,7 @@ The simulator writes fake loans in the exact Freddie Mac layout from a known rul
 ### D7. A data-fit check before any model
 
 `scripts/check_data_fit.py` measures whether the data can answer the question: loans and events per vintage against random noise, whether a simple class average is already as good as possible, recession and COVID coverage, reconciliation counts, and how big an advantage the test could detect. It runs on synthetic data now, where it correctly fails the events rule, and is ready for the real files the day they are downloaded; `docs/data-fit.md` marks every real number as pending. Analogy: checking that a thermometer can read the range you care about before using it to judge a fever.
+
+### D8. Cleanroom bumped to v0.2 before building the forecasting harness
+
+The shared Cleanroom gained forecast scores, the Diebold-Mariano test, rolling forecast origins, an as-of join, and a sealed-run guard in `cleanroom-v0.2`, so Reserve moved to that tag and its macro loader now uses the shared as-of join instead of its own filter. Bumping before writing the harness meant no local copy of those tools was ever written. Analogy: waiting for the shared lab's new instrument instead of building a home-made one that would later disagree with it.
