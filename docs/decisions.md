@@ -50,6 +50,12 @@ Contestant A assumes each vintage keeps going bad at its own recent pace, B give
 
 The README gives a synthetic quickstart and the two manual steps that block real data (Freddie Mac registration and a FRED API key in an environment variable), `docs/findings.md` is an explicit placeholder with no numbers, and every real-data entry in `docs/data-fit.md` says PENDING. Writing down what is not known yet is as important as what is built, because a portfolio project is judged on whether its claims can be traced. Analogy: a lab notebook where blank pages are labelled "not yet measured" instead of being filled in from memory.
 
+## Pretrained models (2026-11-18)
+
+### D12. Chronos-Bolt-tiny is real, with its quantile levels mapped in Reserve's own code
+
+The adapter now loads the pinned model, checks that it was trained on the nine levels 0.1 to 0.9, and maps those to Reserve's seven levels by reading between them, holding 0.05 and 0.95 at the 0.1 and 0.9 values instead of inventing tails. It ran end to end on the synthetic portfolio at about 3 ms of wall time per vintage forecast on a laptop CPU, and tests that run only when the optional extra is installed check its output against the library's own. Analogy: a ruler marked from 1 to 9 cm lets you read 2.5 cm between marks, but you write "1 cm or less" rather than guessing 0.5 cm.
+
 ## Where things stand
 
 Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model, the harness, scoring, configs, and the sealed test guard. Blocked on the owner: Freddie Mac registration and download, and a FRED API key. Not started: the agent, stress scenarios, the thin-history experiment, drift monitoring, and real TSFM runs.

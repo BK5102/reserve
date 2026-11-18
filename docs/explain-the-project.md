@@ -85,3 +85,13 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** command-line flags instead of config files. Rejected: a file can be hashed and sealed.
 - **Cause and effect:** while setting the windows I found that a development period ending in 2012-12 would have shown outcomes from 2013, the test period. The development window now ends in 2012-03, and the config loader rejects any overlap.
 - **How to say it:** "The test plan is hashed and committed before any test score exists, the code refuses to score the test without it, and my development window ends early enough that I never see a test answer while tuning."
+
+## Part 4. Pretrained models
+
+### Step 9. Make the first pretrained model real
+
+- **What I did:** connected Chronos-Bolt-tiny, a small pretrained forecaster from Amazon, to the harness, checked what it actually outputs against its own code and settings file, and ran it on the synthetic portfolio.
+- **Why:** the earlier adapter was a stub, and a contestant that has never run cannot be trusted on real data.
+- **What else I considered:** letting the library fill in the uncertainty levels it was not trained on, or inventing tails for them. I map the levels in my own code instead and hold the outer ones flat, so nothing is added that the model did not say.
+- **Cause and effect:** the model is trained only on the 10% to 90% levels, so the range I call "90%" is really its 80% range, and its 90% coverage will look low for that reason alone. That is now stated wherever its coverage appears. It costs about 3 milliseconds per vintage forecast on my laptop CPU (synthetic data), so speed is not a constraint.
+- **How to say it:** "Before trusting the pretrained model I checked which uncertainty levels it was actually trained on; it stops at 10% and 90%, so I report its outer range honestly instead of stretching it."

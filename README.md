@@ -42,7 +42,7 @@ uv run reserve run configs/freddie_sample.yaml    # development period only
 
 Record the data-fit numbers in `docs/data-fit.md` (the gate: at least 60 usable vintages and 20 events per vintage by age 12) before anything else. The test period (2013 to 2018 origins) is scored only after `uv run reserve seal configs/freddie_sample.yaml`, committing the lock, and setting `evaluation.period: test`.
 
-For the Chronos-Bolt-tiny adapter: `uv sync --extra tsfm` (CPU-only PyTorch) and add `chronos_bolt_tiny` to the config's `tsfm` list. It has not been run yet; see `docs/tsfm-notes.md` for what to check first.
+For the Chronos-Bolt-tiny adapter: `uv sync --extra tsfm` (CPU-only PyTorch) and add `chronos_bolt_tiny` to the config's `tsfm` list. `uv run reserve run configs/synthetic_tsfm.yaml` runs it on the synthetic portfolio (a pipeline check); its verified settings and CPU cost are in `docs/tsfm-notes.md`.
 
 ## What is built
 
@@ -53,7 +53,7 @@ For the Chronos-Bolt-tiny adapter: `uv sync --extra tsfm` (CPU-only PyTorch) and
 | Macro series (unemployment, 30-year mortgage rate, FHFA house prices) as known at the time, from ALFRED | `src/reserve/data/macro.py` | Fake FRED cassette; leak test deleting and corrupting later releases |
 | Synthetic portfolio with known answers (tests only) | `src/reserve/data/synthetic.py` | The pipeline recovers every simulated event exactly |
 | Data-fit check | `scripts/check_data_fit.py` | Synthetic run; real numbers pending |
-| Contestants: A last pace persists, B average age curve, C hazard regression on age and past-only macro, D TSFM | `src/reserve/models/` | Values by hand, known coefficients recovered, corrupted-future leak tests |
+| Contestants: A last pace persists, B average age curve, C hazard regression on age and past-only macro, D TSFM (Chronos-Bolt-tiny real, behind the `tsfm` extra) | `src/reserve/models/` | Values by hand, known coefficients recovered, corrupted-future leak tests; Chronos-Bolt checked against the real model when the extra is installed |
 | Rolling origins and scores from the shared Cleanroom (splits, quantile losses, coverage, Diebold-Mariano, Holm, sealed runs) | `src/reserve/evaluation/` | Hand-computed scores; sealed-run guard refuses a missing or changed lock |
 
 The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tree/main/packages/cleanroom), installed from the Tells repo at tag `cleanroom-v0.2`.

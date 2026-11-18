@@ -69,7 +69,7 @@ def test_validation_rules(tmp_path):
 
 
 def test_shipped_configs_are_valid():
-    for name in ("synthetic_small", "freddie_sample"):
+    for name in ("synthetic_small", "synthetic_tsfm", "freddie_sample"):
         cfgmod.load(f"configs/{name}.yaml")
 
 

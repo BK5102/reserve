@@ -213,11 +213,12 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 - Considered: a Cox proportional hazards model (same idea, harder to project forward); vintage random effects (would capture vintage quality, deferred to keep the baseline simple and explainable); using realized future macro (rejected as a leak).
 - Limitation: no vintage quality term and no seasonality, and flat macro paths miss turning points by construction, which is expected to hurt C most at the start of a recession.
 
-**M27. One interface for every TSFM; the first real one is Chronos-Bolt-tiny, pinned, and not run yet.**
-- What: a `QuantileForecaster` takes plain number sequences and returns (series, horizon, quantiles). The TSFM contestant feeds each vintage's own cumulative curve from age 1 to the origin, indexed by age only, so the model never sees a calendar date; its output gets the same clean-up as every other contestant (M23). A deterministic fake forecaster (last value plus recent pace, spread from recent steps) tests the whole path in CI. The Chronos-Bolt-tiny adapter (amazon/chronos-bolt-tiny, Apache-2.0, pinned to revision a0e552de83495b5c28c14c71c374f3e33280b340) sits behind the optional `tsfm` extra and downloads nothing unless constructed.
+**M27. One interface for every TSFM; the first real one is Chronos-Bolt-tiny, pinned.**
+- What: a `QuantileForecaster` takes plain number sequences and returns (series, horizon, quantiles). The TSFM contestant feeds each vintage's own cumulative curve from age 1 to the origin, indexed by age only, so the model never sees a calendar date; its output gets the same clean-up as every other contestant (M23). A deterministic fake forecaster (last value plus recent pace, spread from recent steps) tests the whole path in CI. The Chronos-Bolt-tiny adapter (amazon/chronos-bolt-tiny, Apache-2.0, pinned to revision a0e552de83495b5c28c14c71c374f3e33280b340) sits behind the optional `tsfm` extra and downloads nothing unless constructed. It ran end to end on the synthetic portfolio on 2026-11-18 (`configs/synthetic_tsfm.yaml`, a pipeline check, not a result); its cost is in `docs/tsfm-notes.md`.
 - Why: small enough for a CPU (Tells measured it at milliseconds per series on CPU, Tells `docs/tsfm-notes.md`), already pinned and used in the sibling project, and it outputs quantiles natively. Feeding the cumulative curve keeps the model's job identical to the other contestants'.
+- How it is batched: the library's `predict_quantiles` has no batch size, so the adapter sorts the series by length and sends 64 at a time, the batch size Tells measured fastest for Chronos-Bolt on CPU. Reserve has not measured other batch sizes; a test shows the batch size does not change the forecasts.
 - Considered: feeding monthly increments and summing (quantiles of sums are not sums of quantiles); Chronos-2 and TimesFM 2.5 (planned next, one adapter each, NEXT_PROJECTS_PLAN.md).
-- Limitation: the adapter is a stub. Its quantile levels outside the trained range (0.05 and 0.95), context length limits, and pretraining cutoff are not verified (`docs/tsfm-notes.md`). No TSFM result exists.
+- Limitation: the pretraining cutoff is not disclosed (`docs/tsfm-notes.md`), so contamination cannot be ruled out (CLAUDE.md rule 9). No TSFM result on real data exists.
 
 **M28. A past-only leak test for every input.**
 - What: (1) for every contestant, forecasts at an origin are identical when every curve cell after the origin is multiplied by 7 and shifted by 3; (2) contestant C's forecasts are identical when every macro value published after the origin month is corrupted; (3) the vintage builder and the macro features have their own past-only tests (M11, M16).
@@ -250,6 +251,16 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 9. Pretrained models
+
+**M32. A TSFM's own quantile levels are mapped to Reserve's seven levels by linear interpolation inside its trained range and held flat outside it.**
+- What: Chronos-Bolt-tiny is trained on nine levels, 0.1 to 0.9 (`chronos_config.quantiles` in the model's `config.json` at the pinned revision, checked 2026-11-18; the adapter also checks this at load time and refuses to run if it differs). The adapter asks the model for exactly those nine and maps them in Reserve's own code (`map_quantiles`): 0.1, 0.5, and 0.9 are native; 0.25 is halfway between 0.2 and 0.3, and 0.75 halfway between 0.7 and 0.8; 0.05 is set to the 0.1 value and 0.95 to the 0.9 value. Every run stores the native levels with the contestant.
+- Why: this adds nothing the model did not say. It is also exactly what chronos-forecasting 2.3.2 does when asked for levels it was not trained on (`ChronosBoltPipeline.predict_quantiles` pads the grid with copies of its end levels and calls `torch.quantile`), and a test confirms the two agree; doing it in Reserve's code means a library change cannot silently change the mapping, and the library itself calls that path a hack that assumes an equidistant grid. Analogy: a ruler marked only from 1 to 9 cm can tell you 2.5 cm by reading between marks, but not 0.5 cm; Reserve reports "1 cm or less" rather than guessing.
+- Considered: extrapolating the tails (for example continuing the slope between 0.1 and 0.2, or fitting a normal or skewed distribution to the nine levels). Rejected for now: any tail model is Reserve's guess, not the TSFM's forecast, and would add a variant to correct for (CLAUDE.md rule 8). Changing Reserve's levels to 0.1 and 0.9 for every contestant was also considered; rejected because the 90% interval is the one a reserve depends on and the other contestants can produce it.
+- Limitation: Chronos-Bolt's "90% interval" (0.05 to 0.95) is really its own 80% interval (0.1 to 0.9), so its 90% coverage is expected to fall short of 90% and its 90% interval score is expected to be worse for that reason alone. This must be said next to every Chronos-Bolt coverage number; its 50% interval is not affected.
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -274,7 +285,8 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L16 | Overlapping 12-month test windows | Neighbouring origins are correlated | Diebold-Mariano with lags up to 3; independent-window count in the data-fit report (M21, M29) |
 | L17 | Contestant C holds macro flat over the horizon | It cannot foresee turning points | By design, since future macro is unknown; stress paths are a separate, hypothetical module (M26) |
 | L18 | Contestant B's interval assumes independent increments | Likely too narrow when vintage quality persists | Coverage reported for every contestant (M25, M29) |
-| L19 | Chronos-Bolt-tiny adapter is a stub | No TSFM result exists; quantile range and limits unverified | Fake forecaster tests the path; checks listed in `docs/tsfm-notes.md` (M27) |
+| L19 | Chronos-Bolt-tiny has run only on synthetic data | No TSFM result on real loans exists | Adapter tested against the real model and run end to end on the synthetic portfolio; real run waits on the data (M27) |
 | L20 | Coverage intervals assume independent forecasts | Coverage uncertainty is understated | Stated with every coverage number (M29) |
 | L21 | Dev runs see the recession as history | Choices made on dev are informed by it | Recession results are labelled descriptive and never headline (M31) |
 | L22 | The lock hashes the config, not the code | Code could change between seal and test | Sealed runs need a clean git tree; the commit is recorded on every result (M30, M31) |
+| L23 | Chronos-Bolt-tiny is trained on quantiles 0.1 to 0.9 only | Its reported 90% interval is its own 80% interval, so its 90% coverage is understated by construction | Tails held flat rather than invented; stated with every Chronos-Bolt coverage number (M32) |
