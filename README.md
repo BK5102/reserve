@@ -1,5 +1,7 @@
 # Reserve
 
+[![ci](https://github.com/BK5102/reserve/actions/workflows/ci.yml/badge.svg)](https://github.com/BK5102/reserve/actions/workflows/ci.yml)
+
 Can a pretrained time series foundation model (TSFM) forecast how each batch of loans will go bad as it ages, including in a recession and with thin history, better than the classical methods lenders use, and are its uncertainty ranges honest?
 
 Lenders track every quarter's new loans as a group, called a vintage, the way a school tracks a graduating class: what share of the class has ever gone 90 or more days late by each month of age. Reserve forecasts the next 12 months of those curves with three classical methods and pretrained models, under an evaluation built so no model can see the future.
