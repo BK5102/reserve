@@ -45,3 +45,9 @@ Contestant A assumes each vintage keeps going bad at its own recent pace, B give
 ### D10. Configs, a CLI, and a sealed test period
 
 `reserve prepare` builds the vintage and macro tables from a config and `reserve run` scores one evaluation period and writes results with full provenance; the synthetic config runs end to end in about 10 seconds. The headline test period can only be scored after `reserve seal` has locked the config and data checksum and the lock is committed, and every attempt is counted. The development window ends a full year before the test window starts, so no development outcome is a test answer. Analogy: the exam paper is sealed in an envelope with a signature across the flap, and every opening is written in a log.
+
+## Where things stand
+
+Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model, the harness, scoring, configs, and the sealed test guard. Blocked on the owner: Freddie Mac registration and download, and a FRED API key. Not started: the agent, stress scenarios, the thin-history experiment, drift monitoring, and real TSFM runs.
+
+How to say it: "The whole pipeline is built and tested against a simulator with known answers; the real-data check runs the day the free data registration comes through, and the results file is deliberately empty until then."

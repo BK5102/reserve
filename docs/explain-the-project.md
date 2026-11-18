@@ -12,7 +12,7 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 
 ## Elevator pitch (draft, no results yet)
 
-"Lenders watch each quarter's batch of loans, called a vintage, the way a school tracks a graduating class: what share has gone seriously late by each age. I am testing whether a pretrained time series model forecasts the next year of those curves better than the methods lenders use, with honest uncertainty ranges, on public Freddie Mac mortgage data. The pipeline is built and tested on synthetic data; the real-data check is waiting on a free data registration."
+"Lenders watch each quarter's batch of loans, called a vintage, the way a school tracks a graduating class: what share has ever gone seriously late by each month of age. I am testing whether a pretrained time series model forecasts the next year of those curves better than the methods lenders use, with honest uncertainty ranges, on public Freddie Mac mortgage data. The pipeline, the classical baselines, and the honesty checks are built and tested against a simulator with known answers; the real-data check is waiting on a free data registration, and I have no result to claim yet."
 
 ---
 

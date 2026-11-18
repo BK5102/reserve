@@ -98,6 +98,12 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 - Tests: hand-computed values on the fake fixture, a brute-force loan-by-loan count on random portfolios, and a past-only test that curves built from data up to month t equal the full curves restricted to months up to t.
 - Limitation: reconciliation proves internal consistency, not that Freddie Mac's data is right.
 
+**M12. Headline horizon: 12 months ahead, from origins every 3 months.**
+- What: each forecast covers the next 12 months of every eligible vintage's curve; the headline scores the 12-month-ahead point, and losses at every horizon from 1 to 12 are reported next to it. Origins are quarter ends, every 3 months.
+- Why: a year is the usual planning horizon for credit loss reserves and the horizon in the agreed plan (NEXT_PROJECTS_PLAN.md, "the next 12 months"). Quarterly origins match how vintages are formed and keep the number of correlated forecasts manageable.
+- Considered: 24 months (PLAN.md mentions 12 to 24), which would halve the number of independent test windows (M21); monthly origins, which add forecasts that are almost copies of their neighbours.
+- Limitation: a 12-month horizon says nothing direct about lifetime losses, which reserving standards also consider.
+
 ---
 
 ## 4. Macro series
@@ -272,3 +278,7 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L20 | Coverage intervals assume independent forecasts | Coverage uncertainty is understated | Stated with every coverage number (M29) |
 | L21 | Dev runs see the recession as history | Choices made on dev are informed by it | Recession results are labelled descriptive and never headline (M31) |
 | L22 | The lock hashes the config, not the code | Code could change between seal and test | Sealed runs need a clean git tree; the commit is recorded on every result (M30, M31) |
+=====PART=====
+### D11. Docs that a reviewer can check, and an empty findings file
+
+The README gives a synthetic quickstart and the two manual steps that block real data (Freddie Mac registration and a FRED API key in an environment variable), `docs/findings.md` is an explicit placeholder with no numbers, and every real-data entry in `docs/data-fit.md` says PENDING. Writing down what is not known yet is as important as what is built, because a portfolio project is judged on whether its claims can be traced. Analogy: a lab notebook where blank pages are labelled "not yet measured" instead of being filled in from memory.
