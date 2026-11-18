@@ -1,0 +1,67 @@
+[project]
+name = "reserve"
+version = "0.0.1"
+description = "Can pretrained time series models forecast loan vintage delinquency curves, with honest uncertainty, better than classical methods? An honest, agent-run evaluation."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = [
+    "cleanroom",
+    "numpy>=2.0",
+    "polars>=1.30",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Time series foundation models. Optional so CI and the baselines stay light and
+# no model weights are downloaded in tests; install with `uv sync --extra tsfm`.
+tsfm = [
+    "torch>=2.6",
+    "chronos-forecasting>=2.3",
+]
+
+[project.scripts]
+reserve = "reserve.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.12",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reserve"]
+
+[tool.uv.sources]
+# TODO(cleanroom-v0.2): bump this tag to cleanroom-v0.2 once it is released, then
+# switch the local stand-ins listed in docs/methodology.md M30 (rolling origins,
+# forecast losses, as-of join) to the Cleanroom versions and delete them here.
+cleanroom = { git = "https://github.com/BK5102/tells", tag = "cleanroom-v0.1", subdirectory = "packages/cleanroom" }
+torch = [{ index = "pytorch-cpu" }]
+
+# CPU-only PyTorch wheels: much smaller, and the project is CPU only (methodology M3).
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib -ra"
+markers = [
+    "data: needs real raw data under data/raw (skipped when the files are missing)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E501"]  # one-off CLI scripts with long usage lines
