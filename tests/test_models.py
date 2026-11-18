@@ -168,16 +168,45 @@ def test_tsfm_shape_mismatch_is_caught(curves):
         TSFMContestant(Bad()).forecast(hist, origin, ["2005Q1"], 12, QUANTILES)
 
 
-def test_chronos_bolt_stub_is_pinned_and_lazy():
+def test_chronos_bolt_is_pinned_and_lazy():
+    from importlib.util import find_spec
+
     assert chronos_bolt.REVISION == "a0e552de83495b5c28c14c71c374f3e33280b340"
     assert chronos_bolt.MODEL_ID == "amazon/chronos-bolt-tiny"
-    try:
-        import chronos  # noqa: F401
-    except ImportError:
-        with pytest.raises(ImportError, match="--extra tsfm"):
-            make_forecaster("chronos_bolt_tiny")
-    else:
-        pytest.skip("chronos is installed; constructing would download weights")
+    if find_spec("chronos") is not None:  # looks without importing PyTorch
+        pytest.skip("chronos is installed; the real model is tested in test_tsfm_chronos_bolt.py")
+    with pytest.raises(ImportError, match="--extra tsfm"):
+        make_forecaster("chronos_bolt_tiny")
+
+
+def test_stub_tsfms_refuse_to_run_and_carry_their_metadata():
+    import sys
+
+    from reserve.models.tsfm import KNOWN_MODELS, MODEL_INFO, chronos2, timesfm25
+
+    assert set(MODEL_INFO) == set(KNOWN_MODELS)
+    for name in ("chronos2", "timesfm_2p5"):
+        with pytest.raises(NotImplementedError, match="stub"):
+            make_forecaster(name)
+        assert MODEL_INFO[name]["status"] == "stub"
+        assert "undisclosed" in MODEL_INFO[name]["pretraining_cutoff"]
+    assert chronos2.REVISION == "29ec3766d36d6f73f0696f85560a422f50e8498c"
+    assert set(QUANTILES) <= set(chronos2.NATIVE_LEVELS)  # every Reserve level is native
+    assert timesfm25.MODEL_ID == "google/timesfm-2.5-200m-pytorch"
+    assert MODEL_INFO["timesfm_2p5"]["revision"] is None  # not pinned until verified
+    assert "timesfm" not in sys.modules
+
+
+def test_timesfm_output_drops_the_mean_column():
+    from reserve.models.tsfm import timesfm25
+
+    out = np.zeros((2, 12, 10))
+    out[..., 0] = 99.0  # the mean, per the model card
+    out[..., 1:] = np.arange(1, 10) / 10
+    native = timesfm25.native_from_output(out)
+    assert native.shape == (2, 12, 9) and (native != 99.0).all()
+    with pytest.raises(ValueError):
+        timesfm25.native_from_output(out[..., :9])
 
 
 # ----- harness and leak tests ----------------------------------------------------------

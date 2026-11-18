@@ -56,6 +56,10 @@ The README gives a synthetic quickstart and the two manual steps that block real
 
 The adapter now loads the pinned model, checks that it was trained on the nine levels 0.1 to 0.9, and maps those to Reserve's seven levels by reading between them, holding 0.05 and 0.95 at the 0.1 and 0.9 values instead of inventing tails. It ran end to end on the synthetic portfolio at about 3 ms of wall time per vintage forecast on a laptop CPU, and tests that run only when the optional extra is installed check its output against the library's own. Analogy: a ruler marked from 1 to 9 cm lets you read 2.5 cm between marks, but you write "1 cm or less" rather than guessing 0.5 cm.
 
+### D13. Chronos-2 and TimesFM 2.5 as honest stubs
+
+Both models sit behind the same quantile interface with their ids, licenses, sizes, quantile levels, and training data written down from their official pages and code, each fact marked verified or unverified, and both refuse to run. Chronos-2 turned out to be trained on 21 quantile levels that include all of Reserve's, while TimesFM 2.5 stops at 10% and 90% and lists training data up to 2023, after the test period. Analogy: two new players are on the team sheet with their measurements checked, but they are marked "not yet played" instead of being given made-up scores.
+
 ## Where things stand
 
 Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model, the harness, scoring, configs, and the sealed test guard. Blocked on the owner: Freddie Mac registration and download, and a FRED API key. Not started: the agent, stress scenarios, the thin-history experiment, drift monitoring, and real TSFM runs.

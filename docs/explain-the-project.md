@@ -95,3 +95,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** letting the library fill in the uncertainty levels it was not trained on, or inventing tails for them. I map the levels in my own code instead and hold the outer ones flat, so nothing is added that the model did not say.
 - **Cause and effect:** the model is trained only on the 10% to 90% levels, so the range I call "90%" is really its 80% range, and its 90% coverage will look low for that reason alone. That is now stated wherever its coverage appears. It costs about 3 milliseconds per vintage forecast on my laptop CPU (synthetic data), so speed is not a constraint.
 - **How to say it:** "Before trusting the pretrained model I checked which uncertainty levels it was actually trained on; it stops at 10% and 90%, so I report its outer range honestly instead of stretching it."
+
+### Step 10. Line up the next two pretrained models without pretending they ran
+
+- **What I did:** added Chronos-2 (Amazon, larger) and TimesFM 2.5 (Google) behind the same interface as stubs that refuse to run, with every fact about them marked as checked or not checked, and where.
+- **Why:** the plan asks for three pretrained models, and the facts that decide whether a comparison is fair (uncertainty levels, context length, training data dates, license) must be checked at the source before any code relies on them.
+- **What else I considered:** writing the full code from the documentation now. Rejected because code that has never run is untested, and TimesFM's install route is not clear yet.
+- **Cause and effect:** checking showed Chronos-2 is trained on 21 uncertainty levels including all of mine, so its 90% range needs no shortcut, while TimesFM 2.5 has Chronos-Bolt's 10% to 90% limit and was trained on some data from as late as 2023, after my test period, which is a contamination risk to state if it is ever run.
+- **How to say it:** "I verify each pretrained model's settings at the source before using it, and the two I have not run yet are clearly marked as stubs rather than quietly counted."
