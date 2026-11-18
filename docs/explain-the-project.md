@@ -25,3 +25,13 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** copying the toolkit into this repo. Rejected because copies drift apart.
 - **Cause and effect:** the tagged version (v0.1) does not yet have forecasting tools (forecast losses, rolling forecast start points). Reserve has small local stand-ins marked to be replaced when v0.2 is tagged.
 - **How to say it:** "I reuse one tested evaluation toolkit across my projects, pinned to a version, so every project sits the same honest exam."
+
+## Part 2. Data
+
+### Step 2. Read Freddie Mac's loan files exactly as documented
+
+- **What I did:** wrote a loader for Freddie Mac's free loan-level mortgage files: one origination file (what each loan looked like when it was made) and one monthly performance file (each loan's status every month).
+- **Why:** everything later depends on reading the right column as the right thing. A delinquency code read from the wrong column would silently produce wrong curves.
+- **What else I considered:** letting the reader guess column types. Rejected: "03" (90 days late) and "RA" (the lender took the house back) must never be confused.
+- **Cause and effect:** Freddie Mac changed the layout in July 2026 (35 performance fields instead of 32, some new names). The loader handles both, detects which one a file uses, and flags the older layout as only partly verified.
+- **How to say it:** "I built the loader from the data provider's own field list and test it against their header file character by character, so a layout change fails loudly instead of quietly corrupting the data."

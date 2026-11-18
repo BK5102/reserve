@@ -34,6 +34,39 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 2. Loading the loan files
+
+**M5. The file layout comes from Freddie Mac's own documents, checked on 2026-11-17; each field is marked verified or unverified.**
+- Sources (all linked from the [SFLLD page](https://www.freddiemac.com/research/datasets/sf-loanlevel-dataset), downloaded 2026-11-17; the first 16 hex digits of each file's SHA-256 are in brackets):
+  - [General User Guide](https://www.freddiemac.com/fmac-resources/research/pdf/general_user_guide_july_2026.pdf). Its title page says "Release 48, October 2026", although the file name says July 2026 [0884a958ebfd58af].
+  - [File Layout spreadsheet](https://www.freddiemac.com/fmac-resources/research/pdf/file_layout_july_2026.xlsx): field position, data type, maximum length [e4ee4ba00b5b1a8d].
+  - [File header files](https://www.freddiemac.com/fmac-resources/research/docs/file_headers_july_2026.zip): the official attribute names in file order [db1390531ca9ea9c].
+  - [SFLLD Disclosure Changes Effective July 2026](https://www.freddiemac.com/fmac-resources/research/pdf/disclosure-changes-summary.pdf), version 1.2, last updated 6/2026: old and new positions for Release 47 [e513ccc06fca1388].
+  - [Release Notes, Release 48](https://www.freddiemac.com/fmac-resources/research/pdf/release_notes.pdf): origination and performance cutoff 2026-06-30 [8c5382463d67e36b].
+- Verified from those documents, and enforced by `tests/test_loans.py`:
+  - Pipe delimited, no header row. Sample files are named `sample_orig_YYYY.txt` and `sample_perf_YYYY.txt` inside `sample_YYYY.zip`. The sample is a simple random sample of 50,000 loans per full vintage year with the same fields as the full dataset.
+  - Current layout (Release 47 and later): 31 origination fields and 35 performance fields, in the order of the official header files. A test compares the loader's field list with the header text character by character.
+  - Loan Identifier format PYYQnXXXXXXX, where YYQn is the origination year and quarter. Reserve takes the vintage from it.
+  - Delinquency status codes: 00 (current or under 30 days), 01 (30 to 59 days), 02 (60 to 89), 03 (90 to 119), and so on, capped at 99; RA for REO Acquisition (the lender took the house back); XX for not available. For periods up to September 2025, 00 could also mean "cycle before first payment date".
+  - Zero Balance Codes 01 (prepaid or matured), 02 (third party sale), 03 (short sale or charge off), 09 (REO disposition), 15 (whole loan sales), 16 (reperforming loan securitizations), 96 (confirmed underwriting or servicing defect).
+  - Not-available codes: 9999 for both credit scores, 999 for MI percent, CLTV, LTV, DTI, and ELTV, 99 for units and number of borrowers, 7 for property valuation method. The loader turns these into nulls.
+  - Since Release 47, recoveries and gains are negative and expenses and losses are positive.
+  - Loan Age in the performance file restarts from the modification first payment date when a loan is modified (User Guide, "Loan Age"). Reserve therefore computes its own age from the first payment date (M8).
+- Unverified, and how the code handles it:
+  - The legacy (pre-Release-47) layout: 31 origination fields with Servicer Name at position 25 and no VantageScore, and the first 32 performance fields. This is read from the "current" column of the disclosure-changes PDF, whose extracted text is partly garbled (the old location of the MI cancellation indicator is unreadable). The loader supports it and detects it from field 31 (Y or N in legacy files, digits in current ones). Check one real legacy file before relying on it.
+  - Unpadded legacy delinquency codes (0, 1, 2) and blank for "not available": inferred from the disclosure-changes "current" column. Both forms are accepted.
+  - Whether real files end lines with a trailing pipe: not stated. The loader accepts both.
+  - Whether the sample files on Clarity follow the Release 47 layout today: the User Guide says the sample has the same fields as the full dataset, but no real file has been opened. `scripts/check_data_fit.py` prints the detected layout of every file it reads.
+- Considered: reading the field list from Freddie Mac's header file at run time. Rejected: the header file is a separate download, and hard-coding it with a character-level test against the official text catches a change equally well.
+- Limitation: until the owner registers and downloads a file, the loader has only been run on hand-built fake records (`tests/fixtures/freddie/`).
+
+**M6. Every field is read as text first and cast explicitly, with strict casts.**
+- Why: a silent type guess could turn "03" into 3 in one file and keep "RA" as text in another. Strict casts make a layout surprise fail loudly instead of producing wrong numbers.
+- Considered: letting the CSV reader infer types. Rejected for the reason above.
+- Limitation: one malformed value stops the whole file from loading. The error names the column, which is the point.
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -43,3 +76,5 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L1 | No real data yet | Nothing about real loans is known; all checks ran on synthetic data | Stated everywhere; `scripts/check_data_fit.py` is ready to run once the owner registers |
 | L2 | Prime, conforming fixed-rate mortgages only | Results do not cover subprime, cards, or auto loans | Stated up front (M2) |
 | L3 | Cleanroom v0.1 lacks forecast tools | Local stand-ins could differ from the shared versions | Marked `TODO(cleanroom-v0.2)`; switch when the tag exists (M30) |
+| L4 | Legacy (pre-Release-47) file layout partly unverified | Older downloads could be misread | Layout detected from field 31 and the field count; flagged in M5; check a real legacy file first |
+| L5 | Loader tested only on hand-built fake records | Real-file quirks are unknown | `check_data_fit.py` reports the layout, counts, and reconciliation on the first real run |
