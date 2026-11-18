@@ -1,0 +1,58 @@
+flowchart TD
+    subgraph S1["1. DATA (public only)"]
+        A["Loan-level monthly performance<br/>status each month: current, 30, 60, 90+ days late"]
+        B["Macro series<br/>unemployment, mortgage rates, house prices<br/>use values as they were known at the time"]
+        C["Vintage builder<br/>groups loans by issue period<br/>delinquency rate by loan age"]
+    end
+    subgraph S2["2. CONTESTANTS"]
+        D["A. Last value or seasonal naive<br/><i>the lazy guess</i>"]
+        E["B. Average age curve<br/><i>the class-average rule</i>"]
+        F["C. Regression with macro variables<br/><i>what an analyst would build</i>"]
+        G["D. TSFM zero-shot<br/><i>the experienced forecaster</i>"]
+        H["E. TSFM with macro covariates<br/>(if the model supports them)"]
+    end
+    subgraph S3["3. THE CLEANROOM (honest exam)"]
+        I["Rolling-origin splits<br/>+ recession holdout<br/>+ sealed envelope lock"]
+        J["Date-masked variant<br/>series indexed by loan age,<br/>not calendar date"]
+        K["Scores: error vs naive, interval coverage,<br/>pinball loss, asymmetric reserve loss"]
+        L["Luck check: paired tests<br/>+ multiple-comparison correction"]
+        M["Thin-data test<br/>cut history to 6, 12, 24 months"]
+    end
+    subgraph S4["4. AGENT HARNESS"]
+        N["Planner<br/>question to experiment list"]
+        O["Runner<br/>approved tools only"]
+        P["Critic = effective challenge<br/>tries to refute the findings"]
+        Q["Reporter<br/>evidence pack, numbers inserted by code"]
+    end
+    R["YOU<br/>review the pack and the objections"]
+
+    A --> C
+    B --> F
+    B --> H
+    C --> D
+    C --> E
+    C --> F
+    C --> G
+    C --> H
+    D --> I
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+    J --> I
+    I --> K --> L
+    M --> K
+    N --> O --> P --> Q --> R
+    O -. runs .-> I
+    L --> P
+
+    classDef data fill:#eef2f7,stroke:#4a5568,color:#1a202c;
+    classDef cont fill:#f3e8ff,stroke:#6b46c1,color:#2d1b4e;
+    classDef room fill:#fff4d6,stroke:#b7791f,color:#4a3200;
+    classDef agent fill:#e6f7ec,stroke:#2f855a,color:#0f3d24;
+    classDef human fill:#ffe8e8,stroke:#c53030,color:#4a1010;
+    class A,B,C data;
+    class D,E,F,G,H cont;
+    class I,J,K,L,M room;
+    class N,O,P,Q agent;
+    class R human;

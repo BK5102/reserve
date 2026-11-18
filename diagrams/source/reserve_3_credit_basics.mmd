@@ -1,0 +1,43 @@
+flowchart LR
+    subgraph P1["STEP 1: THE BASICS"]
+        direction TB
+        A["<b>LENDING</b><br/>A bank hands over money now and expects it back,<br/>plus a fee called interest<br/><i>Like: lending a friend 1,000 dollars for a small fee</i>"]
+        B["<b>CREDIT RISK</b><br/>The chance the money does not come back in full or on time<br/><i>Like: the friend who sometimes pays late and once vanished</i>"]
+        C["<b>THE THREE NUMBERS</b><br/>PD = how likely a borrower defaults<br/>LGD = if they do, what share is lost<br/>EAD = how much is owed at that moment<br/>Expected loss = PD x LGD x EAD<br/><i>Like: chance friend vanishes x share you can't recover x amount lent</i>"]
+        D["<b>DELINQUENCY</b><br/>Being behind on payments (30, 60, 90 days late)<br/>The early-warning signal before default<br/><i>Like: your friend is a month late</i>"]
+        E["<b>VINTAGE</b><br/>All loans issued in the same period, tracked as they age<br/><i>Like: a graduating class. You track the whole class's<br/>job outcomes year by year, not each person</i>"]
+        F["<b>THE FORECASTING PROBLEM</b><br/>For each vintage, the share of loans delinquent by loan age<br/>IS a time series. Predict the next 12 to 24 months"]
+        A --> B
+        B --> C
+        C --> D
+        D --> E
+        E --> F
+    end
+    subgraph P2["STEP 2: WHAT MAKES IT HARD"]
+        direction TB
+        G["<b>THE ECONOMY MATTERS</b><br/>Unemployment, interest rates, and house prices push<br/>whole portfolios up or down together<br/><i>Like: a storm hits every boat in the harbor</i>"]
+        H["<b>STRESS TEST</b><br/>Forecast again under a hypothetical recession<br/><i>Like: a crash test for cars or a fire drill</i>"]
+        I["<b>CALIBRATION</b><br/>When the forecast says a 90 percent range, reality should<br/>land inside it about 9 times in 10<br/>Reserves depend on this being honest<br/><i>Like: a forecaster whose 70 percent rain days<br/>really get rain 7 times in 10</i>"]
+        J["<b>THE BANK RULEBOOK</b><br/>Model risk guidance (SR 26-2, issued April 2026) expects<br/>validation, monitoring, backtesting and independent challenge<br/><i>Like: a referee and an independent inspector for every model</i>"]
+        G --> H
+        H --> I
+        I --> J
+    end
+    subgraph P3["STEP 3: THE IDEA AND THE REPORT"]
+        direction TB
+        K["<b>THE IDEA</b><br/>Pretrained TSFMs may forecast thin or new portfolios well<br/>because they have seen many curves before.<br/>Test them zero-shot against classical methods,<br/>including a recession exam and calibration checks<br/><i>Like: an experienced weather forecaster in a new town</i>"]
+        L["<b>THE AGENT'S JOB</b><br/>Run the experiments, then assemble the evidence pack<br/>a model reviewer would want, and try to refute it first<br/><i>Like: a junior analyst who prepares the audit binder<br/>and argues against their own conclusions</i>"]
+        M["<b>WHAT YOU REPORT</b><br/>Where TSFMs beat classical methods, where they lose,<br/>how calibrated they are, and what would break them"]
+        K --> L
+        L --> M
+    end
+    P1 --> P2
+    P2 --> P3
+    classDef concept fill:#e8f1ff,stroke:#2b6cb0,color:#102a43;
+    classDef warn fill:#ffe8e8,stroke:#c53030,color:#4a1010;
+    classDef idea fill:#fff4d6,stroke:#b7791f,color:#4a3200;
+    classDef good fill:#e6f7ec,stroke:#2f855a,color:#0f3d24;
+    class A,B,C,D,E,F concept;
+    class G,H,I,J warn;
+    class K,L idea;
+    class M good;
