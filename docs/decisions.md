@@ -37,3 +37,7 @@ The simulator writes fake loans in the exact Freddie Mac layout from a known rul
 ### D8. Cleanroom bumped to v0.2 before building the forecasting harness
 
 The shared Cleanroom gained forecast scores, the Diebold-Mariano test, rolling forecast origins, an as-of join, and a sealed-run guard in `cleanroom-v0.2`, so Reserve moved to that tag and its macro loader now uses the shared as-of join instead of its own filter. Bumping before writing the harness meant no local copy of those tools was ever written. Analogy: waiting for the shared lab's new instrument instead of building a home-made one that would later disagree with it.
+
+### D9. Three classical contestants, one TSFM interface, scored with the shared tools
+
+Contestant A assumes each vintage keeps going bad at its own recent pace, B gives it the average path that recent older vintages took at the same ages, and C is a hazard regression on loan age and the economy as it was known at the forecast date. A TSFM plugs in through one interface that sees each vintage's curve indexed by age only, with a fake model for tests and a pinned Chronos-Bolt-tiny adapter that is not yet run. Every forecast is cut with the shared Cleanroom splits, a test corrupts everything after each forecast date and checks that no forecast moves, and scores come from the shared forecast tools with a Diebold-Mariano test and Holm's correction. Analogy: a race with a walker, a pacer who copies last year's runners, and a coach who also checks the weather, before the new runner is allowed on the track.

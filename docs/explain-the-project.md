@@ -67,3 +67,13 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** going straight to models. Rejected for that reason.
 - **Cause and effect:** on synthetic data the script fails the events rule, as designed for thin data, and finds the recession and forbearance windows. It also shows the test period has only about six independent years, so only a large advantage could be detected; that is stated before any result.
 - **How to say it:** "Before building models I measured whether the data could even answer the question, including how big an effect the test could detect, so a null result would not be over-read."
+
+## Part 3. Contestants and the honest exam
+
+### Step 7. Build the contestants and the forecasting harness
+
+- **What I did:** built three classical forecasters (A: the vintage keeps its recent pace; B: it follows the average path of recent older vintages at the same ages; C: a hazard regression on loan age and the economy as known at the time), one interface for pretrained time series models with a fake model for testing, and a harness that runs all of them on the same forecast dates.
+- **Why:** a pretrained model only matters if it beats the methods a lender already uses, under identical inputs.
+- **What else I considered:** using the actual future economy in C. Rejected: nobody knows next year's unemployment at the forecast date; that would be a leak.
+- **Cause and effect:** each forecast date is a split from the shared toolkit, a test corrupts everything after each date and checks no forecast changes, and the scores (quantile loss, interval coverage, a statistical test with a correction for several comparisons) come from the shared toolkit. On synthetic data B's 90% range covered too few outcomes, which shows why coverage is reported for everyone.
+- **How to say it:** "Every model gets exactly the data known on the forecast date, and I prove it by corrupting the future and checking nothing moves; the pretrained model has to beat the best classical method, chosen after the fact, which can only make the bar higher."

@@ -174,6 +174,58 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 7. Contestants and the forecasting harness
+
+**M22. Rolling forecast origins from `cleanroom.split.rolling_origins`, on a month axis.**
+- What: an origin is a calendar month t. Everything up to and including t is known; the forecast covers t+1 to t+12. Origins step every 3 months. Each origin is a Cleanroom `Split` with an expanding training window (all months up to t) and a 12-month test window, and `Split.check` re-verifies the order on the rows every time (CLAUDE.md rule 2). Contestants receive only the training part; the test part is used only to look up outcomes afterwards.
+- How: `rolling_origins` steps by a fixed `timedelta`, and calendar months differ in length. `src/reserve/evaluation/origins.py` therefore places cells on a "month axis" where one month is exactly one day after a fixed epoch, so a 3-day step is exactly 3 months. A test checks the round trip and the window edges.
+- Which vintages: every vintage observed at the origin with at least 6 months of curve (`min_history`). Younger vintages are too short for the TSFM or the persistence baseline to say anything.
+- Considered: building splits by hand. Rejected: the shared function is tested once for every project. Asking the Cleanroom for a calendar-month step is a reasonable future change, done in the Tells repo if wanted.
+- Limitation: with a 3-month step and a 12-month horizon, test windows overlap, so neighbouring origins are not independent (handled in M29).
+
+**M23. Every contestant returns seven quantiles: 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, cleaned up the same way.**
+- What: the 0.25 to 0.75 range is the 50% interval and 0.05 to 0.95 the 90% interval. Every forecast is then made coherent: clipped between the last known value and 1, made non-decreasing in the horizon, and sorted so quantiles never cross.
+- Why: a reserve depends on the range, not only the middle (PLAN.md FR9). A cumulative share that decreases, or a 5% quantile above the 95% quantile, is impossible, and leaving such forecasts in would penalize a contestant for an artifact rather than for its judgement.
+- Considered: scoring raw outputs. Rejected for that reason; the clean-up is identical for all contestants.
+- Limitation: clipping at the last known value moves mass to the lower end, which slightly favours intervals that were too low.
+
+**M24. Contestant A, "last increment persists".**
+- What: the vintage keeps going bad at its own average monthly pace over its last 3 months: c(a0 + k) = c0 + k x d. Quantiles treat the future event count as Poisson with mean k x d x loans.
+- Why: the lazy guess every forecaster must beat, like "tomorrow will be like today". PLAN.md listed "seasonal naive"; vintage curves are indexed by age, so persistence of the recent pace is the natural naive here (NEXT_PROJECTS_PLAN.md, "A last change persists").
+- Considered: last value (zero further increase), which is always too low for a cumulative curve; seasonal naive, which has no meaning on an age axis.
+- Limitation: its interval reflects only counting noise, not uncertainty about the pace, so it is expected to be too narrow. When the last 3 months had no events, the interval collapses to a point.
+
+**M25. Contestant B, "average age curve" (chain-ladder style, additive).**
+- What: for each future age, the mean monthly increment of the 8 newest vintages that have already reached that age, added up over the horizon. The interval is normal with variance equal to the sum over ages of those vintages' increment variance. Ages no vintage has reached yet reuse the oldest age available.
+- Why: this is the class-average rule lenders use, adapted from the actuarial chain ladder (which projects each cohort with development patterns of older cohorts). Additive increments are used because multiplicative development factors c(a+1)/c(a) explode when the curve is near zero at early ages.
+- Considered: multiplicative development factors; more or fewer donor vintages (8 vintages is two years, a balance between recency and noise).
+- Limitation: it ignores the economy and the vintage's own quality, and summing variances assumes increments are independent across ages, which understates the spread when a vintage is consistently better or worse than average. On synthetic data its 90% interval covered well below 90%, which is consistent with that (not a result; the simulator has cohort effects by design).
+
+**M26. Contestant C, hazard regression on age plus past-only macro.**
+- What: a binomial logistic regression of each cell's new events out of loans at risk on a linear age spline (knots at 6, 12, 24, 36, 60 months, plus an indicator for age 3 or less) and four macro features known at the end of that cell's month (M16): unemployment level and 12-month change, mortgage rate, and 12-month house price growth. Features are standardized on the training cells, with a small ridge penalty. The forecast holds the macro features at their values known at the origin, projects the loans at risk forward with the pooled exit rate of the last 24 months, and takes quantiles from 200 Monte Carlo draws of the coefficients (from their estimated covariance) and of binomial event and exit counts.
+- Why: it is what an analyst would build, and the only classical contestant that uses the economy. The hazard uses at-risk counts, so prepayment does not bias it. Holding macro values flat is the honest choice: future unemployment is unknown at the origin, and using realized future values would leak (CLAUDE.md rule 1). Scenario paths for the economy belong to the hypothetical stress module, labelled as such (PLAN.md FR12).
+- Considered: a Cox proportional hazards model (same idea, harder to project forward); vintage random effects (would capture vintage quality, deferred to keep the baseline simple and explainable); using realized future macro (rejected as a leak).
+- Limitation: no vintage quality term and no seasonality, and flat macro paths miss turning points by construction, which is expected to hurt C most at the start of a recession.
+
+**M27. One interface for every TSFM; the first real one is Chronos-Bolt-tiny, pinned, and not run yet.**
+- What: a `QuantileForecaster` takes plain number sequences and returns (series, horizon, quantiles). The TSFM contestant feeds each vintage's own cumulative curve from age 1 to the origin, indexed by age only, so the model never sees a calendar date; its output gets the same clean-up as every other contestant (M23). A deterministic fake forecaster (last value plus recent pace, spread from recent steps) tests the whole path in CI. The Chronos-Bolt-tiny adapter (amazon/chronos-bolt-tiny, Apache-2.0, pinned to revision a0e552de83495b5c28c14c71c374f3e33280b340) sits behind the optional `tsfm` extra and downloads nothing unless constructed.
+- Why: small enough for a CPU (Tells measured it at milliseconds per series on CPU, Tells `docs/tsfm-notes.md`), already pinned and used in the sibling project, and it outputs quantiles natively. Feeding the cumulative curve keeps the model's job identical to the other contestants'.
+- Considered: feeding monthly increments and summing (quantiles of sums are not sums of quantiles); Chronos-2 and TimesFM 2.5 (planned next, one adapter each, NEXT_PROJECTS_PLAN.md).
+- Limitation: the adapter is a stub. Its quantile levels outside the trained range (0.05 and 0.95), context length limits, and pretraining cutoff are not verified (`docs/tsfm-notes.md`). No TSFM result exists.
+
+**M28. A past-only leak test for every input.**
+- What: (1) for every contestant, forecasts at an origin are identical when every curve cell after the origin is multiplied by 7 and shifted by 3; (2) contestant C's forecasts are identical when every macro value published after the origin month is corrupted; (3) the vintage builder and the macro features have their own past-only tests (M11, M16).
+- Why: CLAUDE.md rule 1. Corrupting the future and checking nothing moves catches leaks that a code review can miss.
+- Limitation: the tests prove the code paths are past-only for the origins tested, not for every possible origin; they run on synthetic data.
+
+**M29. Scoring with the shared Cleanroom tools, against the best classical baseline.**
+- What: all losses use the change since the origin (outcome minus the known value). Reported per contestant at the 12-month horizon: mean pinball loss over the seven quantiles, weighted quantile loss on the change, the mean absolute error of the median, 50% and 90% interval coverage with Wilson intervals, and the 90% interval score; and mean pinball loss at every horizon. The reference is the classical contestant (A, B, or C) with the lowest overall loss in the same table. Each other contestant gets a relative error (geometric mean over origins of the ratio of its per-origin loss to the reference's) and a Diebold-Mariano test on per-origin losses, with the Harvey-Leybourne-Newbold correction and lags up to ceil(12 / 3) - 1 = 3 because forecasts from origins less than a year apart share outcome months. Holm's correction adjusts the p-values, and the number of comparisons is reported (CLAUDE.md rule 8).
+- Why: this is the plan's headline, "quantile loss ratio against the best classical baseline at 12 months, Diebold-Mariano plus Holm" (NEXT_PROJECTS_PLAN.md). Choosing the best baseline after seeing the table can only favour the baselines, which makes any TSFM win more convincing, not less.
+- Considered: averaging the ratio arithmetically (treats "twice as good" and "twice as bad" asymmetrically); pooling all vintage forecasts into one DM test (vintages at the same origin are strongly correlated, so that would overstate the evidence).
+- Limitation: the Wilson coverage intervals treat forecasts as independent, which they are not; the true uncertainty is larger. Choosing the reference by its loss in the same table is a mild selection step, reported in every result.
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -195,3 +247,8 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L13 | Simulator is far simpler than real mortgages | Pipeline checks on it say nothing about real performance | Used only for tests and pipeline checks; never in findings (M17) |
 | L14 | Only about 6 independent 12-month windows in the test period | Small real gains may be undetectable | MDE reported before any result (M21); negative results stay in |
 | L15 | The events gate and noise-floor settings are judgment calls | A borderline dataset could pass or fail on the setting | All settings in `FitSettings`, reported in every data-fit output |
+| L16 | Overlapping 12-month test windows | Neighbouring origins are correlated | Diebold-Mariano with lags up to 3; independent-window count in the data-fit report (M21, M29) |
+| L17 | Contestant C holds macro flat over the horizon | It cannot foresee turning points | By design, since future macro is unknown; stress paths are a separate, hypothetical module (M26) |
+| L18 | Contestant B's interval assumes independent increments | Likely too narrow when vintage quality persists | Coverage reported for every contestant (M25, M29) |
+| L19 | Chronos-Bolt-tiny adapter is a stub | No TSFM result exists; quantile range and limits unverified | Fake forecaster tests the path; checks listed in `docs/tsfm-notes.md` (M27) |
+| L20 | Coverage intervals assume independent forecasts | Coverage uncertainty is understated | Stated with every coverage number (M29) |
