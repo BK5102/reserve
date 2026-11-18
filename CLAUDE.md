@@ -56,7 +56,10 @@ uv run reserve prepare macro                  # needs FRED_API_KEY in the enviro
 uv run reserve prepare freddie --config configs/freddie_sample.yaml      # after the Freddie Mac download
 uv run python scripts/check_data_fit.py freddie data/raw/freddie --fred data/raw/fred
 uv run reserve seal configs/freddie_sample.yaml   # before any test score; commit the lock
-uv run reserve agent "do TSFMs help when history is only 12 months?"     # not built yet
+uv run reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only: 6, 12, 24 months of history
+uv run reserve run configs/synthetic_small.yaml --experiment scenarios      # dev only: hypothetical macro paths, never scored
+uv run reserve monitor artifacts/runs/<run>                                 # drift lights for a finished run
+uv sync --extra agent && uv run reserve agent "do TSFMs help when history is only 12 months?"   # needs ANTHROPIC_API_KEY
 ```
 
 If a command above does not exist yet, create it as part of the day's task and update this file.
