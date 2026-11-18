@@ -392,7 +392,7 @@ Lenders forecast delinquency for vintages of loans to set reserves and steer und
 ### Non-functional requirements
 
 - Python 3.11 or newer, `uv`, `ruff`, `pytest`, fixed seeds, pinned versions.
-- Small-subset run under 15 minutes on a laptop CPU. Full run may use a GPU.
+- Small-subset run under 15 minutes on a laptop CPU. The full run is also CPU only; no GPU is assumed.
 - Every result carries config hash, git commit, model name and version, data checksum.
 
 ### Definition of done for v0.1

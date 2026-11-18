@@ -68,6 +68,9 @@ If a command above does not exist yet, create it as part of the day's task and u
 10. **Never invent results, datasets, or citations.** Use clearly marked placeholders.
 11. **Negative results stay in.**
 12. **Record provenance** on every result: config hash, git commit, model name and version, data checksum.
+13. **Every choice is explained.** Any new method, variable, threshold, default, or dataset choice gets an entry in `docs/methodology.md` (what, why, what else was considered, limitation) in the same commit, and any new limitation goes in its limitations register. The owner must be able to defend every choice in an interview.
+14. **Keep the story current.** After every step that changes the project or produces a result, update `docs/explain-the-project.md`: what was done, why, what else was considered, cause and effect, and a one-sentence way to say it in an interview.
+15. **CPU only.** Every run, including the full run, must work on a laptop CPU. Do not plan for or require a GPU.
 
 ## Agent safety rules (for `src/reserve/agent/`)
 
