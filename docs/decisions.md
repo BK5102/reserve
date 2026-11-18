@@ -46,6 +46,10 @@ Contestant A assumes each vintage keeps going bad at its own recent pace, B give
 
 `reserve prepare` builds the vintage and macro tables from a config and `reserve run` scores one evaluation period and writes results with full provenance; the synthetic config runs end to end in about 10 seconds. The headline test period can only be scored after `reserve seal` has locked the config and data checksum and the lock is committed, and every attempt is counted. The development window ends a full year before the test window starts, so no development outcome is a test answer. Analogy: the exam paper is sealed in an envelope with a signature across the flap, and every opening is written in a log.
 
+### D11. Docs that a reviewer can check, and an empty findings file
+
+The README gives a synthetic quickstart and the two manual steps that block real data (Freddie Mac registration and a FRED API key in an environment variable), `docs/findings.md` is an explicit placeholder with no numbers, and every real-data entry in `docs/data-fit.md` says PENDING. Writing down what is not known yet is as important as what is built, because a portfolio project is judged on whether its claims can be traced. Analogy: a lab notebook where blank pages are labelled "not yet measured" instead of being filled in from memory.
+
 ## Where things stand
 
 Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model, the harness, scoring, configs, and the sealed test guard. Blocked on the owner: Freddie Mac registration and download, and a FRED API key. Not started: the agent, stress scenarios, the thin-history experiment, drift monitoring, and real TSFM runs.

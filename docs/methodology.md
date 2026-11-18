@@ -278,7 +278,3 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L20 | Coverage intervals assume independent forecasts | Coverage uncertainty is understated | Stated with every coverage number (M29) |
 | L21 | Dev runs see the recession as history | Choices made on dev are informed by it | Recession results are labelled descriptive and never headline (M31) |
 | L22 | The lock hashes the config, not the code | Code could change between seal and test | Sealed runs need a clean git tree; the commit is recorded on every result (M30, M31) |
-=====PART=====
-### D11. Docs that a reviewer can check, and an empty findings file
-
-The README gives a synthetic quickstart and the two manual steps that block real data (Freddie Mac registration and a FRED API key in an environment variable), `docs/findings.md` is an explicit placeholder with no numbers, and every real-data entry in `docs/data-fit.md` says PENDING. Writing down what is not known yet is as important as what is built, because a portfolio project is judged on whether its claims can be traced. Analogy: a lab notebook where blank pages are labelled "not yet measured" instead of being filled in from memory.
