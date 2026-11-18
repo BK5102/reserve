@@ -19,17 +19,6 @@ jobs:
         with:
           version: "0.10.7"
           python-version: ${{ matrix.python-version }}
-      # The Cleanroom is installed from the private BK5102/tells repo. A read-only
-      # token stored as the TELLS_READ_TOKEN secret lets CI fetch it.
-      - name: Allow reading the private Cleanroom repo
-        env:
-          TELLS_READ_TOKEN: ${{ secrets.TELLS_READ_TOKEN }}
-        run: |
-          if [ -n "$TELLS_READ_TOKEN" ]; then
-            git config --global url."https://x-access-token:${TELLS_READ_TOKEN}@github.com/BK5102/tells".insteadOf "https://github.com/BK5102/tells"
-          else
-            echo "TELLS_READ_TOKEN is not set; installing the Cleanroom will fail while BK5102/tells is private."
-          fi
       - name: Install (no TSFM extra, so no model weights or PyTorch)
         run: uv sync --locked
       - name: Lint
