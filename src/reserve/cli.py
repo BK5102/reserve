@@ -8,6 +8,7 @@ reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only
 reserve run configs/synthetic_small.yaml --experiment scenarios      # HYPOTHETICAL, dev only
 reserve seal configs/freddie_sample.yaml --note "plan for the 2013-2018 test"
 reserve monitor artifacts/runs/<run id> --contestant B_age_curve --reference-end 2008-12
+reserve agent "do TSFMs help when history is only 12 months?" [--cassette c.json] [--allow-test]
 """
 
 from __future__ import annotations
@@ -121,6 +122,36 @@ def _monitor(args: argparse.Namespace) -> int:
     return 0
 
 
+def _agent(args: argparse.Namespace) -> int:
+    from datetime import UTC, datetime
+
+    from reserve.agent import critic, llm, reporter, runner, tools
+
+    if args.cassette:
+        model = llm.CassetteLLM(args.cassette)
+    else:
+        try:
+            backend = llm.AnthropicLLM()  # the SDK reads ANTHROPIC_API_KEY
+        except ImportError as err:
+            print(f"error: {err}", file=sys.stderr)
+            return 1
+        model = llm.CassetteLLM(args.record, "record", backend) if args.record else backend
+    box = tools.Toolbox(allow_test=args.allow_test)
+    result = runner.run_agent(args.question, box, model, max_tool_calls=args.max_tool_calls)
+    review = critic.review(result.final_text, box)
+    challenge = critic.challenge(result.final_text, box, model, review)
+    pack = reporter.build_pack(result, review, challenge, box)
+    out = Path(args.out or f"artifacts/agent/{datetime.now(UTC):%Y%m%dT%H%M%SZ}_pack.md")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(pack, encoding="utf-8")
+    print(
+        f"critic: {'passed' if review.passed else 'FAILED'}; challenge: "
+        f"{'passed' if challenge.passed else 'FAILED'}"
+    )
+    print(f"evidence pack (draft for human review): {out}")
+    return 0 if review.passed and challenge.passed else 3
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="reserve", description="Reserve experiments")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -149,6 +180,14 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--reference-end", required=True, help="last origin of the reference window")
     m.add_argument("--window", type=int, default=4, help="origins per monitoring window")
     m.set_defaults(func=_monitor)
+    a = sub.add_parser("agent", help="run the experiment agent and draft an evidence pack")
+    a.add_argument("question")
+    a.add_argument("--allow-test", action="store_true", help="offer the sealed test period")
+    a.add_argument("--cassette", help="replay a recorded model conversation (no API call)")
+    a.add_argument("--record", help="record the live conversation to this cassette file")
+    a.add_argument("--out", help="where to write the evidence pack")
+    a.add_argument("--max-tool-calls", type=int, default=10)
+    a.set_defaults(func=_agent)
     args = ap.parse_args(argv)
     try:
         return args.func(args)

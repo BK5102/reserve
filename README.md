@@ -44,6 +44,8 @@ uv run reserve run configs/freddie_sample.yaml    # development period only
 
 Record the data-fit numbers in `docs/data-fit.md` (the gate: at least 60 usable vintages and 20 events per vintage by age 12) before anything else. The test period (2013 to 2018 origins) is scored only after `uv run reserve seal configs/freddie_sample.yaml`, committing the lock, and setting `evaluation.period: test`.
 
+For the agent: `uv sync --extra agent`, set `ANTHROPIC_API_KEY` in the environment (never in a file), then `uv run reserve agent "do TSFMs help when history is only 12 months?"`. Add `--record cassettes/name.json` to save the conversation for replay. It has not been run live yet.
+
 For the Chronos-Bolt-tiny adapter: `uv sync --extra tsfm` (CPU-only PyTorch) and add `chronos_bolt_tiny` to the config's `tsfm` list. `uv run reserve run configs/synthetic_tsfm.yaml` runs it on the synthetic portfolio (a pipeline check); its verified settings and CPU cost are in `docs/tsfm-notes.md`.
 
 ## What is built
@@ -60,6 +62,7 @@ For the Chronos-Bolt-tiny adapter: `uv sync --extra tsfm` (CPU-only PyTorch) and
 | Thin-history experiment: the portfolio is 6, 12, or 24 months old, same targets at every level, dev only | `src/reserve/evaluation/experiments.py` | A spy contestant sees no older vintage; corrupted-future leak test; Holm across levels |
 | HYPOTHETICAL macro scenarios (baseline, adverse, severe) for contestant C, never scored, dev only | `src/reserve/stress/scenarios.py` | Paths by hand; baseline equals the flat path; leak test on later macro releases |
 | Drift monitor: 90% coverage, loss ratio against a backtest window, macro range; `reserve monitor` | `src/reserve/monitoring/drift.py` | Planted synthetic drift turns red within the window; thresholds by hand |
+| Agent: four-tool allow-list, runner, two-stage critic, evidence-pack reporter; `reserve agent` | `src/reserve/agent/` | Hand-written cassettes (no API calls): denials, the test-period lock, typed numbers, claim directions, objection pointers |
 
 The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tree/main/packages/cleanroom), installed from the Tells repo at tag `cleanroom-v0.2`.
 
@@ -83,4 +86,4 @@ The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tr
 
 ## Not built yet
 
-The agent harness (planner, runner, critic, reporter) and real runs of the second and third TSFMs (Chronos-2 and TimesFM 2.5 are stubs; PLAN.md Part 6).
+Real runs of the second and third TSFMs (Chronos-2 and TimesFM 2.5 are stubs), TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, slice analysis, and any live agent run (PLAN.md Part 6).

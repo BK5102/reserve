@@ -19,6 +19,11 @@ tsfm = [
     "torch>=2.6",
     "chronos-forecasting>=2.3",
 ]
+# The experiment agent (Claude API). Optional: tests replay cassettes and never call the
+# API; install with `uv sync --extra agent` and set ANTHROPIC_API_KEY for a live run.
+agent = [
+    "anthropic>=1.0",
+]
 
 [project.scripts]
 reserve = "reserve.cli:main"
