@@ -17,6 +17,8 @@ uv sync
 uv run pytest -q
 uv run reserve prepare synthetic --config configs/synthetic_small.yaml
 uv run reserve run configs/synthetic_small.yaml
+uv run reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only
+uv run reserve run configs/synthetic_small.yaml --experiment scenarios      # HYPOTHETICAL, dev only
 uv run python scripts/check_data_fit.py synthetic configs/synthetic_fit.yaml
 ```
 
@@ -55,6 +57,8 @@ For the Chronos-Bolt-tiny adapter: `uv sync --extra tsfm` (CPU-only PyTorch) and
 | Data-fit check | `scripts/check_data_fit.py` | Synthetic run; real numbers pending |
 | Contestants: A last pace persists, B average age curve, C hazard regression on age and past-only macro, D TSFM (Chronos-Bolt-tiny real, behind the `tsfm` extra) | `src/reserve/models/` | Values by hand, known coefficients recovered, corrupted-future leak tests; Chronos-Bolt checked against the real model when the extra is installed |
 | Rolling origins and scores from the shared Cleanroom (splits, quantile losses, coverage, Diebold-Mariano, Holm, sealed runs) | `src/reserve/evaluation/` | Hand-computed scores; sealed-run guard refuses a missing or changed lock |
+| Thin-history experiment: the portfolio is 6, 12, or 24 months old, same targets at every level, dev only | `src/reserve/evaluation/experiments.py` | A spy contestant sees no older vintage; corrupted-future leak test; Holm across levels |
+| HYPOTHETICAL macro scenarios (baseline, adverse, severe) for contestant C, never scored, dev only | `src/reserve/stress/scenarios.py` | Paths by hand; baseline equals the flat path; leak test on later macro releases |
 
 The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tree/main/packages/cleanroom), installed from the Tells repo at tag `cleanroom-v0.2`.
 
@@ -78,4 +82,4 @@ The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tr
 
 ## Not built yet
 
-The agent harness (planner, runner, critic, reporter), hypothetical stress scenarios, the thin-history experiment, the drift monitor, and the second and third TSFM adapters (PLAN.md Part 6).
+The agent harness (planner, runner, critic, reporter), the drift monitor, and real runs of the second and third TSFMs (Chronos-2 and TimesFM 2.5 are stubs; PLAN.md Part 6).

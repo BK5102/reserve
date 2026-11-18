@@ -24,9 +24,10 @@ from cleanroom import guard, lock, provenance
 
 from reserve import config as cfgmod
 from reserve.data import loans, macro, synthetic, vintages
-from reserve.evaluation import harness, origins, scoring
+from reserve.evaluation import experiments, harness, origins, scoring
 from reserve.models import baselines, hazard
 from reserve.models.tsfm import TSFMContestant, make_forecaster
+from reserve.stress import scenarios
 
 INTERIM_FILES = ("curves.parquet", "loans.parquet")
 
@@ -90,7 +91,10 @@ def load_prepared(cfg: dict[str, Any]) -> tuple[pl.DataFrame, pl.DataFrame | Non
     return pl.read_parquet(files["curves"]), feats, files
 
 
-def build_contestants(cfg: dict[str, Any], feats: pl.DataFrame | None) -> list:
+def build_contestants(
+    cfg: dict[str, Any], feats: pl.DataFrame | None, scenario: scenarios.Scenario | None = None
+) -> list:
+    """Contestants from the config; `scenario` gives C a HYPOTHETICAL macro path (M35)."""
     spec = cfg["contestants"]
     out = []
     if "A_last_increment" in spec:
@@ -100,7 +104,10 @@ def build_contestants(cfg: dict[str, Any], feats: pl.DataFrame | None) -> list:
     if "C_hazard_macro" in spec:
         out.append(
             hazard.HazardRegression(
-                feats, seed=cfg.get("seed", 0), **(spec["C_hazard_macro"] or {})
+                feats,
+                seed=cfg.get("seed", 0),
+                scenario=scenario,
+                **(spec["C_hazard_macro"] or {}),
             )
         )
     for name in spec.get("tsfm", []) or []:
@@ -122,28 +129,85 @@ def seal(cfg: dict[str, Any], note: str = "") -> lock.Lock:
     return lock.seal(cfg, cfg.get("lock_dir", "locks"), note=note, data_sha256=data_checksum(files))
 
 
-def run(cfg: dict[str, Any], _allow_untracked_lock_for_tests: bool = False) -> Path:
-    """Score the config's evaluation period; returns the run folder."""
+def run(
+    cfg: dict[str, Any],
+    _allow_untracked_lock_for_tests: bool = False,
+    experiment: str | None = None,
+) -> Path:
+    """Score the config's evaluation period; returns the run folder.
+
+    `experiment` ("thin_history" or "scenarios") runs a harness option instead of the
+    ordinary scoring; it is refused unless the period is dev (methodology M34, M35).
+    """
     cfgmod.validate(cfg)
     ev = cfg["evaluation"]
     period = ev["period"]
+    if experiment is not None:
+        if experiment not in experiments.KINDS:
+            raise cfgmod.ConfigError(f"experiment must be one of {experiments.KINDS}")
+        if period != "dev":
+            raise cfgmod.ConfigError(
+                f"the {experiment} experiment runs on the dev (validation) period only, not "
+                f"{period!r}"
+            )
     curves, feats, files = load_prepared(cfg)
     first, last = cfgmod.origin_window(cfg, period)
     os_ = origins.monthly_origins(first, last, int(ev["step_months"]), int(ev["horizon"]))
     contestants = build_contestants(cfg, feats)
     chash = provenance.config_hash(cfg)
-    run_id = f"{datetime.now(UTC):%Y%m%dT%H%M%SZ}_{cfg['name']}_{period}_{chash[:8]}"
+    kind = f"_{experiment}" if experiment else ""
+    run_id = f"{datetime.now(UTC):%Y%m%dT%H%M%SZ}_{cfg['name']}_{period}{kind}_{chash[:8]}"
     out_dir = Path(cfg.get("artifacts_dir", "artifacts/runs")) / run_id
+    exp_cfg = (cfg.get("experiments") or {}).get(experiment or "", {}) or {}
+
+    def with_scenario(name: str) -> list:
+        """Same contestant objects, except C, which gets the scenario's macro path."""
+        c_spec = cfg["contestants"].get("C_hazard_macro") or {}
+        return [
+            hazard.HazardRegression(
+                feats, seed=cfg.get("seed", 0), scenario=scenarios.get(name), **c_spec
+            )
+            if c.name == "C_hazard_macro"
+            else c
+            for c in contestants
+        ]
+
+    def compute(quantiles: list[float]) -> tuple[pl.DataFrame, dict]:
+        horizon, step = int(ev["horizon"]), int(ev["step_months"])
+        min_history = int(ev.get("min_history", 6))
+        if experiment == "thin_history":
+            preds, payload = experiments.run_thin_history(
+                curves,
+                lambda _key: contestants,
+                os_,
+                horizon,
+                quantiles,
+                step,
+                min_history,
+                months=exp_cfg.get("months", experiments.DEFAULT_THIN_MONTHS),
+                exclude=cfgmod.exclusions(cfg),
+            )
+            return preds, {"thin_history": payload}
+        if experiment == "scenarios":
+            preds, payload = experiments.run_scenarios(
+                curves,
+                with_scenario,
+                os_,
+                horizon,
+                quantiles,
+                min_history,
+                names=exp_cfg.get("names", experiments.DEFAULT_SCENARIOS),
+            )
+            return preds, {"scenarios": payload}
+        preds = harness.run(curves, contestants, os_, horizon, quantiles, min_history)
+        return preds, {
+            "scores": scoring.score(preds, quantiles, horizon, step, cfgmod.exclusions(cfg))
+        }
 
     def execute(sealed: dict | None) -> Path:
         t0 = time.perf_counter()
         quantiles = list(ev["quantiles"])
-        preds = harness.run(
-            curves, contestants, os_, int(ev["horizon"]), quantiles, int(ev.get("min_history", 6))
-        )
-        scores = scoring.score(
-            preds, quantiles, int(ev["horizon"]), int(ev["step_months"]), cfgmod.exclusions(cfg)
-        )
+        preds, payload = compute(quantiles)
         out_dir.mkdir(parents=True, exist_ok=True)
         preds.write_parquet(out_dir / "predictions.parquet")
         revisions = None if feats is None else bool(feats["revisions_ignored"].any())
@@ -163,7 +227,8 @@ def run(cfg: dict[str, Any], _allow_untracked_lock_for_tests: bool = False) -> P
             "origins": [o.month.isoformat() for o in os_],
             "contestants": [c.describe() for c in contestants],
             "n_contestants": len(contestants),
-            "scores": scores,
+            "experiment": experiment,
+            **payload,
             "seconds": round(time.perf_counter() - t0, 2),
             "provenance": provenance.stamp(
                 cfg, files, packages=("reserve", "cleanroom", "polars", "numpy", "scipy")

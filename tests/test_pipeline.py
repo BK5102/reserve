@@ -163,3 +163,47 @@ def test_prepare_macro_needs_a_key(monkeypatch, capsys):
     monkeypatch.delenv("FRED_API_KEY", raising=False)
     assert cli.main(["prepare", "macro"]) == 1
     assert "FRED_API_KEY" in capsys.readouterr().err
+
+
+def test_experiments_run_on_dev_only_and_are_labelled(tmp_path, capsys):
+    cfg = small_cfg(tmp_path)
+    cfg["experiments"] = {"thin_history": {"months": [6, 12]}, "scenarios": {"names": ["severe"]}}
+    cfgmod.validate(cfg)
+    pipeline.prepare(cfg)
+    thin = json.loads((pipeline.run(cfg, experiment="thin_history") / "results.json").read_text())
+    assert thin["experiment"] == "thin_history" and "_dev_thin_history_" in thin["run_id"]
+    assert thin["thin_history"]["levels"] == ["6", "12", "full"]
+    assert thin["provenance"]["config_hash"] == thin["config_hash"]
+    scen = json.loads((pipeline.run(cfg, experiment="scenarios") / "results.json").read_text())
+    assert scen["scenarios"]["hypothetical"] is True
+    assert list(scen["scenarios"]["scenarios"]) == ["baseline", "severe"]
+    c = next(x for x in scen["contestants"] if x["name"] == "C_hazard_macro")
+    assert c["scenario"] is None  # the run's own contestant list is the unshocked one
+    recession = copy.deepcopy(cfg)
+    recession["evaluation"]["period"] = "recession"
+    recession["evaluation"]["origins"]["recession"] = {"first": "2007-03", "last": "2008-03"}
+    for kind in ("thin_history", "scenarios"):
+        with pytest.raises(cfgmod.ConfigError, match=r"dev \(validation\) period only"):
+            pipeline.run(recession, experiment=kind)
+    with pytest.raises(cfgmod.ConfigError, match="experiment must be one of"):
+        pipeline.run(cfg, experiment="peek_at_test")
+    import yaml
+
+    path = tmp_path / "c.yaml"
+    path.write_text(yaml.safe_dump(cfg))
+    assert cli.main(["run", str(path), "--experiment", "scenarios"]) == 0
+    out = capsys.readouterr().out
+    assert "SYNTHETIC DATA" in out and "HYPOTHETICAL scenario severe" in out
+
+
+def test_experiment_settings_are_validated(tmp_path):
+    for bad in (
+        {"thin_history": {"months": [12, 6]}},
+        {"thin_history": {"months": [3]}},  # below min_history
+        {"scenarios": {"names": ["boom"]}},
+        {"peek": {}},
+    ):
+        cfg = small_cfg(tmp_path)
+        cfg["experiments"] = bad
+        with pytest.raises(cfgmod.ConfigError):
+            cfgmod.validate(cfg)

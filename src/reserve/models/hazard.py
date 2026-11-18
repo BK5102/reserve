@@ -71,7 +71,11 @@ class HazardRegression:
         exit_window: int = 24,
         draws: int = 200,
         seed: int = 0,
+        scenario=None,
     ):
+        # `scenario` (reserve.stress.scenarios.Scenario) replaces the flat macro path with a
+        # HYPOTHETICAL what-if path from the origin values (methodology M35).
+        self.scenario = scenario
         self.macro = macro
         self.features = tuple(features) if macro is not None else ()
         self.exit_window = exit_window
@@ -91,6 +95,7 @@ class HazardRegression:
             "draws": self.draws,
             "seed": self.seed,
             "macro_revisions_ignored": revisions,
+            "scenario": self.scenario.describe() if self.scenario is not None else None,
         }
 
     def _design(self, cells: pl.DataFrame) -> tuple[np.ndarray, pl.DataFrame]:
@@ -133,9 +138,10 @@ class HazardRegression:
             row = self.macro.filter(pl.col("period") == origin).select(self.features)
             if row.height == 0 or any(v is None for v in row.row(0)):
                 raise ValueError(f"no macro features known at origin {origin}")
-            x = np.column_stack(
-                [x, np.repeat(np.array(row.row(0), dtype=float)[None, :], len(ages), 0)]
-            )
+            path = np.repeat(np.array(row.row(0), dtype=float)[None, :], len(ages), 0)
+            if self.scenario is not None:
+                path = path + self.scenario.deltas(self.features, len(ages))
+            x = np.column_stack([x, path])
         f = self.last_fit
         return np.column_stack([np.ones(len(ages)), (x - f["mu"]) / f["sd"]])
 

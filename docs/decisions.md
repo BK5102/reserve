@@ -60,6 +60,14 @@ The adapter now loads the pinned model, checks that it was trained on the nine l
 
 Both models sit behind the same quantile interface with their ids, licenses, sizes, quantile levels, and training data written down from their official pages and code, each fact marked verified or unverified, and both refuse to run. Chronos-2 turned out to be trained on 21 quantile levels that include all of Reserve's, while TimesFM 2.5 stops at 10% and 90% and lists training data up to 2023, after the test period. Analogy: two new players are on the team sheet with their measurements checked, but they are marked "not yet played" instead of being given made-up scores.
 
+### D14. A thin-history experiment that simulates a new loan product
+
+`reserve run CONFIG --experiment thin_history` hides every vintage older than 6, 12, or 24 months at each forecast date and scores every contestant on the same 6-month-old vintages, with Holm's correction across all levels together, on the development period only. Methods that read only the vintage's own curve do not change across levels, while the ones that learn from older vintages do, which is exactly what the experiment is meant to expose. Analogy: asking how well each coach predicts a first-term student's grades at a school that opened six months, one year, or two years ago.
+
+### D15. Hypothetical macro scenarios, never scored
+
+Baseline, adverse, and severe what-if paths for unemployment and house prices feed the macro regression, and the result reports how far its forecasts move and which contestants respond at all; everything carries the label HYPOTHETICAL and runs on the development period only. Only the regression responds, because the other contestants do not use the economy. Analogy: a crash test shows how a car behaves in a crash, not whether you will have one.
+
 ## Where things stand
 
 Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model, the harness, scoring, configs, and the sealed test guard. Blocked on the owner: Freddie Mac registration and download, and a FRED API key. Not started: the agent, stress scenarios, the thin-history experiment, drift monitoring, and real TSFM runs.

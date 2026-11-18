@@ -103,3 +103,21 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** writing the full code from the documentation now. Rejected because code that has never run is untested, and TimesFM's install route is not clear yet.
 - **Cause and effect:** checking showed Chronos-2 is trained on 21 uncertainty levels including all of mine, so its 90% range needs no shortcut, while TimesFM 2.5 has Chronos-Bolt's 10% to 90% limit and was trained on some data from as late as 2023, after my test period, which is a contamination risk to state if it is ever run.
 - **How to say it:** "I verify each pretrained model's settings at the source before using it, and the two I have not run yet are clearly marked as stubs rather than quietly counted."
+
+## Part 5. Experiments on the development period
+
+### Step 11. Test what happens when the portfolio is new
+
+- **What I did:** added a thin-history option that pretends the loan product started only 6, 12, or 24 months before each forecast date, by removing every older vintage, and scores every contestant on the same 6-month-old vintages at each level.
+- **Why:** the main reason a pretrained model might help is that a new product has little history of its own, so the classical methods have little to learn from.
+- **What else I considered:** shortening every vintage's own history instead, which answers a different question (what if old records were deleted), and letting the forecast targets change with the history length, which would mix two effects.
+- **Cause and effect:** by design, the methods that look only at the vintage's own curve (A and the pretrained model) score the same at every level, while B and C, which learn from older vintages, change. On SYNTHETIC data (a pipeline check, not a result) C got much worse with 6 or 12 months, because it had to guess the shape of the curve at ages it had never seen. Corrections for multiple comparisons now run across all levels together, and it runs on the development period only.
+- **How to say it:** "I simulate a brand-new loan product by hiding all older vintages, and keep the forecast targets fixed so the only thing that changes is how much history each method can learn from."
+
+### Step 12. Add hypothetical economic scenarios, labelled as such
+
+- **What I did:** added baseline, adverse, and severe what-if paths for unemployment and house prices, fed them to the macro regression (C), and report how its forecasts move. Everything is labelled HYPOTHETICAL and nothing is scored.
+- **Why:** reviewers ask how a model behaves in a downturn. A scenario is a crash test, not a prediction, and it cannot be scored because the economy never followed it.
+- **What else I considered:** calibrating to official supervisory scenarios (not consulted, so not claimed), and building exact paths from the real unemployment history (more complex for little gain at this stage).
+- **Cause and effect:** only C responds, because the other contestants, including the zero-shot pretrained model, do not use the economy at all. That is a finding about the design worth stating: in a downturn, the pretrained model as used here cannot react to a forecast of rising unemployment.
+- **How to say it:** "My stress scenarios are labelled hypothetical everywhere and never scored, and they showed that only the regression with economic inputs reacts to them, which is exactly the gap a pretrained model with covariates would have to close."

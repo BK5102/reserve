@@ -76,5 +76,27 @@ def validate(cfg: dict[str, Any]) -> None:
                 f"dev origins end {dev_last}; their {horizon}-month outcomes reach past the "
                 f"first test origin {test_first}"
             )
+    _validate_experiments(cfg)
     if data["source"] == "synthetic" and ev["period"] in SEALED_PERIODS:
         raise ConfigError("synthetic data is never scored as a sealed test (M17)")
+
+
+def _validate_experiments(cfg: dict[str, Any]) -> None:
+    """Optional `experiments:` block: thin-history levels and HYPOTHETICAL scenario names."""
+    from reserve.stress.scenarios import SCENARIOS
+
+    exp = cfg.get("experiments") or {}
+    unknown = set(exp) - {"thin_history", "scenarios"}
+    if unknown:
+        raise ConfigError(f"unknown experiments {sorted(unknown)}")
+    months = (exp.get("thin_history") or {}).get("months")
+    if months is not None:
+        if not months or any(int(m) < 1 for m in months) or sorted(months) != list(months):
+            raise ConfigError("experiments.thin_history.months must be increasing and positive")
+        if int(months[0]) < int(cfg["evaluation"].get("min_history", 6)):
+            raise ConfigError("thin-history levels must be at least evaluation.min_history")
+    names = (exp.get("scenarios") or {}).get("names")
+    if names is not None:
+        bad = set(names) - set(SCENARIOS)
+        if bad:
+            raise ConfigError(f"unknown scenarios {sorted(bad)}; known: {sorted(SCENARIOS)}")
