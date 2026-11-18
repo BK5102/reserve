@@ -74,7 +74,7 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 - Why: 90 days late is the usual "serious delinquency" line and comes before most defaults, so it is the early-warning signal a lender watches. Adding the credit-related exits catches loans that were sold or settled before reaching 90 days. Counting only the first time makes the curve cumulative: it can only go up, like a class's share of students who have ever failed a course. The owner approved this target (NEXT_PROJECTS_PLAN.md, decision 3).
 - Why code 15 counts: Freddie Mac computes Actual Loss for codes 02, 03, 09, and 15 only (User Guide, "Actual Loss"), which marks 15 as a credit event. Code 16 (reperforming loan securitization) and 96 (defect) are not counted as events; a loan's earlier 90-day delinquency, if any, is already counted.
 - Considered: 60+ days (more events, but more loans cure); "currently 90+" (goes up and down, so it is not a clean curve); default only (fewer events, and the timing depends on slow foreclosure processes).
-- Limitation: during COVID forbearance in 2020 and 2021, borrowers who paused payments with permission could still be reported as delinquent, so the event then partly measures forbearance rather than distress. Those months are excluded from the headline (M13).
+- Limitation: during COVID forbearance in 2020 and 2021, borrowers who paused payments with permission could still be reported as delinquent, so the event then partly measures forbearance rather than distress. Those months are excluded from the headline (M12).
 
 **M8. Vintage age counts months since the end of the origination quarter, not each loan's own age.**
 - What: age 1 of vintage 2005Q1 is calendar month 2005-04 for every loan in it. Any event recorded before age 1 is counted at age 1.
@@ -101,6 +101,38 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 4. Macro series
+
+**M13. Three FRED series: UNRATE, MORTGAGE30US, and HPIPONM226S.**
+- What, checked on each FRED series page on 2026-11-17:
+  - [UNRATE](https://fred.stlouisfed.org/series/UNRATE): Unemployment Rate, percent, monthly, seasonally adjusted, from the Bureau of Labor Statistics (Employment Situation release).
+  - [MORTGAGE30US](https://fred.stlouisfed.org/series/MORTGAGE30US): 30-Year Fixed Rate Mortgage Average in the United States, percent, weekly ending Thursday, not seasonally adjusted, from Freddie Mac's Primary Mortgage Market Survey.
+  - [HPIPONM226S](https://fred.stlouisfed.org/series/HPIPONM226S): Purchase Only House Price Index for the United States, index January 1991 = 100, monthly, seasonally adjusted, from the Federal Housing Finance Agency (FHFA).
+- Why: job loss, the cost of refinancing, and house prices are the three standard drivers of mortgage delinquency. A borrower who loses a job cannot pay, one whose rate is above the market rate may refinance away, and one with falling house prices cannot sell to escape. These are PLAN.md FR3's three series.
+- Considered: the FHFA all-transactions index (USSTHPI), which is quarterly; monthly was preferred to match the monthly curves. State-level unemployment and house prices would match loans to local conditions but need a loan-to-state mix per vintage; deferred.
+- Limitation: national series only. A vintage concentrated in one region feels local conditions the national series miss. HPIPONM226S's first observation month and how far back its ALFRED vintages go were not checked (the FRED page shows recent values only); `check_data_fit.py` reports both once the key exists.
+
+**M14. As-of mode: every forecast uses the version of each series that was published by the end of the forecast month.**
+- What: one API request per series asks for every vintage (`realtime_start=1776-07-04`, `realtime_end=9999-12-31`, [FRED API docs](https://fred.stlouisfed.org/docs/api/fred/series_observations.html)). Each row then carries the dates during which that value was the published one. For month t, Reserve keeps the rows valid on the last day of t, so a later revision cannot leak back. This is the "as-of join".
+- Why: unemployment and house prices are revised after first release. Using today's revised numbers would give a forecast information nobody had at the time (CLAUDE.md rule 1). Analogy: grading a weather forecaster against the radar they actually had that morning, not a cleaned-up map from a week later.
+- Considered: downloading one request per forecast date with `vintage_dates`; more requests for the same result.
+- Limitation: FRED's missing-value marker is "." in practice, but the API page does not say so (unverified; the parser treats "." as missing). Whether ALFRED vintages exist for every month of every series back to 1999 is unverified until the key exists.
+
+**M15. Latest mode is a fallback, and it is always flagged.**
+- What: when as-of data is not available, Reserve uses today's values and treats observation month m as known at the end of month m + lag: lag 1 for UNRATE, 0 for MORTGAGE30US, 2 for HPIPONM226S. Every row then carries `revisions_ignored = true`, and that flag is carried into results.
+- Why the lags: on the FRED pages checked 2026-11-17, UNRATE's October 2026 value was published 2026-11-06 (one month), HPIPONM226S's latest value was August 2026 at the 2026-10-27 update (two months), and MORTGAGE30US is published weekly for the week just ended.
+- Considered: no lag at all. Rejected: it would use a month's unemployment before it was published.
+- Limitation: revisions leak in latest mode. A test shows the revised value being used as if known earlier, so the flag is not decorative.
+
+**M16. Four past-only macro features, as known at the end of each month.**
+- What: newest known unemployment rate; its change over the 12 months to that newest month (both from the same vintage); newest known monthly average 30-year mortgage rate (weekly values averaged within the calendar month); and the log change in the house price index over the 12 months to its newest known month.
+- Why: levels and 12-month changes are the usual macro inputs to credit models; changes capture "conditions are worsening" better than levels. Using the newest month known, rather than a fixed calendar month, means each feature uses exactly what was published.
+- Leak test: for every month t, features computed from all vintages equal features computed after deleting, or multiplying by 100, every value published after the end of t.
+- Considered: more series or lags. Deferred: with about 25 years of history, a small set keeps the hazard regression stable.
+- Limitation: the features describe the economy up to the forecast date only. Contestant C must hold them fixed over the forecast horizon (M26), because future macro values are unknown at the origin.
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -112,7 +144,10 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L3 | Cleanroom v0.1 lacks forecast tools | Local stand-ins could differ from the shared versions | Marked `TODO(cleanroom-v0.2)`; switch when the tag exists (M30) |
 | L4 | Legacy (pre-Release-47) file layout partly unverified | Older downloads could be misread | Layout detected from field 31 and the field count; flagged in M5; check a real legacy file first |
 | L5 | Loader tested only on hand-built fake records | Real-file quirks are unknown | `check_data_fit.py` reports the layout, counts, and reconciliation on the first real run |
-| L6 | COVID forbearance shows up as delinquency in 2020 and 2021 | The event then partly measures permitted payment pauses | Forbearance share measured by the data-fit check; those months excluded from the headline (M13) |
+| L6 | COVID forbearance shows up as delinquency in 2020 and 2021 | The event then partly measures permitted payment pauses | Forbearance share measured by the data-fit check; those months excluded from the headline (M12) |
 | L7 | Vintage age is calendar-aligned, not loan-level | Loans in a quarter differ by up to two months in true age | Stated (M8); the alternative breaks the exact "known at t" property |
 | L8 | Curves by original count mix credit and prepayment speed | Fast-prepaying vintages look better partly because fewer loans stayed exposed | Stated (M9); the hazard model uses at-risk counts instead |
 | L9 | Events before Freddie Mac acquires a loan are not observed | A few early events could be missed | Data-fit check reports loans first seen after age 1 |
+| L10 | National macro series only | Regional shocks are missed | Stated (M13); state-level series deferred |
+| L11 | Latest mode leaks revisions | Forecasts could use revised values unknown at the time | As-of mode by default; latest mode sets `revisions_ignored` on every row and result (M15) |
+| L12 | ALFRED vintage coverage and the "." missing marker are unverified | As-of mode may have gaps for early years | Checked by the data-fit script once the FRED key exists (M14) |

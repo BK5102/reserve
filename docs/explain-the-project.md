@@ -43,3 +43,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** dividing by the loans still active each month (a life table). It answers "what if nobody prepaid" and depends on prepayment, so I kept it for the hazard model only.
 - **Cause and effect:** the build checks itself every time. A duplicated row, a loan without an origination record, or a count that does not add up stops it with an error instead of producing a wrong curve.
 - **How to say it:** "Each quarter's loans become one curve, the share of the original class that ever went seriously late by each month, and the build refuses to run if any count fails to reconcile with the loan-level data."
+
+### Step 4. Load the economy as it was known at the time
+
+- **What I did:** wrote a loader for unemployment, mortgage rates, and house prices from FRED, using its archive of earlier versions (ALFRED) so each forecast date sees only the numbers published by then.
+- **Why:** unemployment and house prices get revised. A forecast that uses revised numbers has information nobody had at the time, which flatters it.
+- **What else I considered:** using today's numbers with a publication delay. Kept only as a fallback that labels every row "revisions ignored".
+- **Cause and effect:** a leak test deletes or corrupts everything published after each month and checks that nothing changes. Tests run on a fake recorded response, so they need no key and no network. The real download waits on a free FRED key.
+- **How to say it:** "Every macro input is what was published by the forecast date, taken from the Fed's archive of past data versions, and a test proves that later revisions cannot leak in."
