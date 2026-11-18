@@ -67,6 +67,40 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 3. Vintage curves
+
+**M7. The event is "ever 90 or more days delinquent, or defaulted", the first time it happens.**
+- What: a loan's event month is the first month in which its delinquency status is 03 or higher (90 days or more), its status is RA (REO acquisition, meaning the lender took the house back), or it leaves the data with a credit-related zero balance code: 02 third party sale, 03 short sale or charge off, 09 REO disposition, 15 whole loan sale. Each loan has at most one event.
+- Why: 90 days late is the usual "serious delinquency" line and comes before most defaults, so it is the early-warning signal a lender watches. Adding the credit-related exits catches loans that were sold or settled before reaching 90 days. Counting only the first time makes the curve cumulative: it can only go up, like a class's share of students who have ever failed a course. The owner approved this target (NEXT_PROJECTS_PLAN.md, decision 3).
+- Why code 15 counts: Freddie Mac computes Actual Loss for codes 02, 03, 09, and 15 only (User Guide, "Actual Loss"), which marks 15 as a credit event. Code 16 (reperforming loan securitization) and 96 (defect) are not counted as events; a loan's earlier 90-day delinquency, if any, is already counted.
+- Considered: 60+ days (more events, but more loans cure); "currently 90+" (goes up and down, so it is not a clean curve); default only (fewer events, and the timing depends on slow foreclosure processes).
+- Limitation: during COVID forbearance in 2020 and 2021, borrowers who paused payments with permission could still be reported as delinquent, so the event then partly measures forbearance rather than distress. Those months are excluded from the headline (M13).
+
+**M8. Vintage age counts months since the end of the origination quarter, not each loan's own age.**
+- What: age 1 of vintage 2005Q1 is calendar month 2005-04 for every loan in it. Any event recorded before age 1 is counted at age 1.
+- Why: with one calendar month per (vintage, age) cell, "what was known at forecast date t" is exact: a cell is known once its month has passed. Each loan's own age would put a vintage's loans at different ages in the same calendar month, and a cell would only be complete after its latest loan reached that age. Freddie Mac's Loan Age field also restarts after a loan modification (User Guide, "Loan Age"), so it cannot be used as is.
+- Considered: months since each loan's first payment date (closer to "loan age", but breaks the one-month-per-cell property); quarters instead of months (fewer, noisier steps).
+- Limitation: loans originated early in a quarter are up to two months older than loans originated late in it at the same vintage age. Events before age 1 are shifted later, never earlier, so nothing leaks from the future, but the first cell can hold a few early events.
+
+**M9. The denominator is the original loan count; prepaid and other exiting loans stay in it.**
+- What: `cum_rate = loans with an event by this age / loans originated in the vintage`. Prepaid loans (zero balance code 01), reperforming sales (16), defects (96), and loans that vanish from the data without a code all remain in the denominator and simply can no longer have an event.
+- Why: this is the standard "cumulative default rate by original count" view, the share of the original class that ever went bad. It never decreases and needs no assumption about what a prepaid loan would have done. The owner approved it (decision 3).
+- Considered: a life-table estimate that divides each month's events by the loans still at risk and compounds them. That answers a different question ("if no one prepaid"), depends on the prepayment pattern, and is used inside the hazard model instead (M10).
+- Limitation: a vintage that prepays fast (for example in a refinancing boom) shows a lower curve partly because fewer loans remained exposed. The curve mixes credit quality and prepayment speed, by design.
+- Cells stop at the data cutoff (the last performance month), so unobserved months are missing, not zero. Vintages with no complete month are dropped. A loan that disappears before the cutoff without a zero balance code is counted in `exits_unexplained` and reported by the reconciliation.
+
+**M10. Each cell also records the loans at risk.**
+- What: `at_risk` is the number of loans observed and event-free at the start of an age: a loan is at risk from its first observed month through its event month or, without an event, its last observed month. Each cell also counts new events, prepayments, other exits, and unexplained exits.
+- Why: the hazard regression (contestant C) needs the true denominator for "chance of going bad this month, given not bad yet", and the counts let a test check the identity at_risk(next age) = at_risk - events - exits + loans first seen at the next age.
+- Limitation: loans enter the data when Freddie Mac acquires them, sometimes a few months after the first payment. Before that they are not observed, and an event in that gap would be missed. Freddie Mac rarely buys a loan that is already 90 days late, so this is expected to be small; the data-fit check reports how many loans are first seen after age 1.
+
+**M11. Reconciliation runs on every build.**
+- What: `vintages.build` raises an error unless: there is one outcome row per originated loan; no performance loan lacks an origination record; no (loan, month) row is duplicated; each vintage's denominator equals its loan count; the events in the curves equal the loans with an event; no curve decreases; and the at-risk identity holds in every cell.
+- Tests: hand-computed values on the fake fixture, a brute-force loan-by-loan count on random portfolios, and a past-only test that curves built from data up to month t equal the full curves restricted to months up to t.
+- Limitation: reconciliation proves internal consistency, not that Freddie Mac's data is right.
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -78,3 +112,7 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L3 | Cleanroom v0.1 lacks forecast tools | Local stand-ins could differ from the shared versions | Marked `TODO(cleanroom-v0.2)`; switch when the tag exists (M30) |
 | L4 | Legacy (pre-Release-47) file layout partly unverified | Older downloads could be misread | Layout detected from field 31 and the field count; flagged in M5; check a real legacy file first |
 | L5 | Loader tested only on hand-built fake records | Real-file quirks are unknown | `check_data_fit.py` reports the layout, counts, and reconciliation on the first real run |
+| L6 | COVID forbearance shows up as delinquency in 2020 and 2021 | The event then partly measures permitted payment pauses | Forbearance share measured by the data-fit check; those months excluded from the headline (M13) |
+| L7 | Vintage age is calendar-aligned, not loan-level | Loans in a quarter differ by up to two months in true age | Stated (M8); the alternative breaks the exact "known at t" property |
+| L8 | Curves by original count mix credit and prepayment speed | Fast-prepaying vintages look better partly because fewer loans stayed exposed | Stated (M9); the hazard model uses at-risk counts instead |
+| L9 | Events before Freddie Mac acquires a loan are not observed | A few early events could be missed | Data-fit check reports loans first seen after age 1 |

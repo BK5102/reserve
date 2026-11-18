@@ -17,3 +17,7 @@ Every run, including the full one, must work on a laptop CPU, so the PLAN.md lin
 ### D3. Freddie Mac loader built from the official file layout, tested on fake records
 
 The loader reads the pipe-delimited origination and monthly performance files using the field order in Freddie Mac's official header files (31 and 35 fields since Release 47, July 2026), and a test compares the code's field list with that header text exactly. No real data is available yet, so the loader is tested on a few hand-built fake loans written in the exact layout: a prepayment, a loan that goes 90 days late and ends in foreclosure, and a month with status "not available". Analogy: checking a key against the locksmith's blueprint before the door arrives.
+
+### D4. Vintage curves by original loan count, reconciled on every build
+
+Each origination quarter becomes a curve: the share of its original loans that have ever been 90+ days late or defaulted, by month since the quarter ended, with prepaid loans kept in the denominator so the curve never goes down. Every build checks that each loan is counted once, that the events in the curves equal the loans that went bad, and that the "loans still at risk" count adds up month to month, and a test proves that curves built from data up to any month match the full curves cut at that month. Analogy: a school's yearbook counting, for each graduating class, how many have ever dropped out by each year, where students who transferred away still count as members of their class.

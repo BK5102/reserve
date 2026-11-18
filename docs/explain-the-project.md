@@ -35,3 +35,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** letting the reader guess column types. Rejected: "03" (90 days late) and "RA" (the lender took the house back) must never be confused.
 - **Cause and effect:** Freddie Mac changed the layout in July 2026 (35 performance fields instead of 32, some new names). The loader handles both, detects which one a file uses, and flags the older layout as only partly verified.
 - **How to say it:** "I built the loader from the data provider's own field list and test it against their header file character by character, so a layout change fails loudly instead of quietly corrupting the data."
+
+### Step 3. Turn loan records into vintage curves
+
+- **What I did:** grouped loans by origination quarter (a vintage) and, for each month after the quarter ended, counted the share of the original loans that had ever been 90 or more days late or defaulted.
+- **Why:** this cumulative curve is the time series every contestant forecasts. Counting each loan once, at its first bad month, makes the curve only go up.
+- **What else I considered:** dividing by the loans still active each month (a life table). It answers "what if nobody prepaid" and depends on prepayment, so I kept it for the hazard model only.
+- **Cause and effect:** the build checks itself every time. A duplicated row, a loan without an origination record, or a count that does not add up stops it with an error instead of producing a wrong curve.
+- **How to say it:** "Each quarter's loans become one curve, the share of the original class that ever went seriously late by each month, and the build refuses to run if any count fails to reconcile with the loan-level data."
