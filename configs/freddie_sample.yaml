@@ -1,0 +1,36 @@
+# Freddie Mac sample files plus FRED/ALFRED macro (methodology M2, M31).
+# Needs the manual steps in the README: Freddie Mac registration and download into
+# data/raw/freddie, and FRED_API_KEY for `reserve prepare macro`.
+# Before any test score: `reserve seal` this config, commit the lock, then set
+# evaluation.period to test. Changing anything after sealing needs a new lock.
+name: freddie_sample
+seed: 0
+data:
+  source: freddie
+  raw_dir: data/raw/freddie
+  fred_dir: data/raw/fred
+  interim_dir: data/interim/freddie_sample
+macro:
+  mode: asof
+evaluation:
+  period: dev
+  origins:
+    # Dev ends a full horizon before the first test origin, so no dev outcome is a test target.
+    dev: {first: "2010-03", last: "2012-03"}
+    # Headline test origins from NEXT_PROJECTS_PLAN.md; last targets 2019-12, before COVID.
+    test: {first: "2013-03", last: "2018-12"}
+    # The 2007-2009 recession: descriptive only, never in the headline (owner decision 4).
+    recession: {first: "2007-03", last: "2009-03"}
+  step_months: 3
+  horizon: 12
+  min_history: 6
+  quantiles: [0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95]
+  # COVID forbearance months are never scored (methodology M20).
+  exclude_target_windows: [["2020-01", "2021-12"]]
+contestants:
+  A_last_increment: {window: 3}
+  B_age_curve: {donors: 8}
+  C_hazard_macro: {draws: 200, exit_window: 24}
+  tsfm: [fake]          # add chronos_bolt_tiny after `uv sync --extra tsfm` (docs/tsfm-notes.md)
+lock_dir: locks
+artifacts_dir: artifacts/runs

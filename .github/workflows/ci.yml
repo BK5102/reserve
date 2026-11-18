@@ -25,3 +25,5 @@ jobs:
         run: uv run ruff check . && uv run ruff format --check .
       - name: Test
         run: uv run pytest -q
+      - name: Synthetic end-to-end run (pipeline check, not a result)
+        run: uv run reserve prepare synthetic --config configs/synthetic_small.yaml && uv run reserve run configs/synthetic_small.yaml

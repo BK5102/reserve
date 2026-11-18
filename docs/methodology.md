@@ -226,6 +226,24 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 8. Configs, runs, and the lock
+
+**M30. One YAML config per experiment; the whole config is hashed, and every result carries provenance.**
+- What: `configs/*.yaml` sets the data source, macro mode, evaluation period and origin windows, horizon, step, quantiles, excluded target windows, contestants and their settings, and seeds. `reserve prepare` builds `curves.parquet`, `loans.parquet`, and `macro_features.parquet`; `reserve run` writes `results.json` and `predictions.parquet` under `artifacts/runs/<run id>/`. Each result stores the config and its hash, the git commit and whether the tree was dirty, the SHA-256 of every input table, package versions, each contestant's settings and version, whether macro revisions were ignored, and the run's role (development, sealed test, or descriptive) (CLAUDE.md rule 12).
+- Why: anyone can trace a number back to exact inputs, and any change to the plan changes the hash.
+- Synthetic configs write the fake portfolio in the Freddie Mac layout and read it back through the real loader, so the synthetic check exercises the real data path. `configs/synthetic_small.yaml` runs prepare plus run in about 10 seconds on a laptop CPU.
+- Considered: command-line flags instead of files. Rejected: a file can be hashed, sealed, and committed.
+- Limitation: settings that live in code (for example the age-spline knots) are pinned by the git commit, not by the config hash, as in Tells (Tells L13).
+
+**M31. Three evaluation periods, and only the test period is sealed.**
+- What: `dev` (Freddie config: origins 2010-03 to 2012-03) for building and debugging; `test` (2013-03 to 2018-12, from NEXT_PROJECTS_PLAN.md) for the headline; `recession` (2007-03 to 2009-03) for the descriptive stress exam. Scoring `test` happens only inside `cleanroom.guard.sealed_run`, which requires a lock for exactly this config and data checksum (`reserve seal`), a clean git tree, and a committed lock, and records every attempt as started and finished. Synthetic configs can never be scored as `test`. Target months 2020-01 to 2021-12 are excluded from every score (M20); the headline test's last target is 2019-12 anyway.
+- Why the dev window ends in 2012-03: its 12-month outcomes then end by 2013-03, the first test origin, so tuning on dev never shows a test-period outcome. The config loader refuses any config that breaks this.
+- Why the recession is descriptive: there is one recession episode in the data, so it can illustrate behaviour under stress but cannot support a general claim (PLAN.md Part 7; owner decision 4). Its origins end 2009-03 so its outcomes end by 2010-03, the start of dev.
+- Considered: sealing the recession too. Not done: development runs use months up to 2012 as history, so the recession is not unseen in any case; it is labelled "descriptive" in every result instead.
+- Limitation: the dev period sees the recession's curves as history, so choices made on dev are informed by it. The lock fixes the plan, not the code (M30).
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -252,3 +270,5 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L18 | Contestant B's interval assumes independent increments | Likely too narrow when vintage quality persists | Coverage reported for every contestant (M25, M29) |
 | L19 | Chronos-Bolt-tiny adapter is a stub | No TSFM result exists; quantile range and limits unverified | Fake forecaster tests the path; checks listed in `docs/tsfm-notes.md` (M27) |
 | L20 | Coverage intervals assume independent forecasts | Coverage uncertainty is understated | Stated with every coverage number (M29) |
+| L21 | Dev runs see the recession as history | Choices made on dev are informed by it | Recession results are labelled descriptive and never headline (M31) |
+| L22 | The lock hashes the config, not the code | Code could change between seal and test | Sealed runs need a clean git tree; the commit is recorded on every result (M30, M31) |

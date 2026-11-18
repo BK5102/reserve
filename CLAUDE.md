@@ -29,10 +29,11 @@ reserve/
   src/reserve/
     data/        loans.py  vintages.py  macro.py
     models/      baselines.py  tsfm/ (one adapter per TSFM, quantile output)
+    evaluation/  origins.py  harness.py  scoring.py (Cleanroom splits and forecast scores)
     stress/      scenarios.py
     monitoring/  drift.py
     agent/       planner.py  runner.py  critic.py  reporter.py  tools.py
-    cli.py
+    datafit.py  pipeline.py  config.py  cli.py
   tests/
   configs/
   docs/          tsfm-notes.md  decisions.md  findings.md
@@ -45,11 +46,17 @@ The testing toolkit comes from the shared `cleanroom` package (split, lock, metr
 ## Commands
 
 ```
-uv sync
+uv sync                                       # add --extra tsfm for Chronos-Bolt (CPU PyTorch)
 uv run pytest -q
 uv run ruff check . && uv run ruff format --check .
-uv run reserve run configs/small.yaml        # small-subset experiment, CPU, under 15 minutes
-uv run reserve agent "do TSFMs help when history is only 12 months?"
+uv run reserve prepare synthetic --config configs/synthetic_small.yaml   # fake data, seconds
+uv run reserve run configs/synthetic_small.yaml                          # pipeline check, not a result
+uv run python scripts/check_data_fit.py synthetic configs/synthetic_fit.yaml
+uv run reserve prepare macro                  # needs FRED_API_KEY in the environment
+uv run reserve prepare freddie --config configs/freddie_sample.yaml      # after the Freddie Mac download
+uv run python scripts/check_data_fit.py freddie data/raw/freddie --fred data/raw/fred
+uv run reserve seal configs/freddie_sample.yaml   # before any test score; commit the lock
+uv run reserve agent "do TSFMs help when history is only 12 months?"     # not built yet
 ```
 
 If a command above does not exist yet, create it as part of the day's task and update this file.

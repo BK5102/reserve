@@ -77,3 +77,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** using the actual future economy in C. Rejected: nobody knows next year's unemployment at the forecast date; that would be a leak.
 - **Cause and effect:** each forecast date is a split from the shared toolkit, a test corrupts everything after each date and checks no forecast changes, and the scores (quantile loss, interval coverage, a statistical test with a correction for several comparisons) come from the shared toolkit. On synthetic data B's 90% range covered too few outcomes, which shows why coverage is reported for everyone.
 - **How to say it:** "Every model gets exactly the data known on the forecast date, and I prove it by corrupting the future and checking nothing moves; the pretrained model has to beat the best classical method, chosen after the fact, which can only make the bar higher."
+
+### Step 8. Make every run reproducible and seal the exam
+
+- **What I did:** added config files, a command line (`reserve prepare`, `reserve run`, `reserve seal`), and result files that record the config hash, git commit, data checksums, and package versions.
+- **Why:** any number in a report must trace back to exact inputs, and the test period must be scored under a plan fixed in advance.
+- **What else I considered:** command-line flags instead of config files. Rejected: a file can be hashed and sealed.
+- **Cause and effect:** while setting the windows I found that a development period ending in 2012-12 would have shown outcomes from 2013, the test period. The development window now ends in 2012-03, and the config loader rejects any overlap.
+- **How to say it:** "The test plan is hashed and committed before any test score exists, the code refuses to score the test without it, and my development window ends early enough that I never see a test answer while tuning."
