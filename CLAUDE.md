@@ -58,7 +58,7 @@ uv run python scripts/check_data_fit.py freddie data/raw/freddie --fred data/raw
 uv run reserve seal configs/freddie_sample.yaml   # before any test score; commit the lock
 uv run reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only: 6, 12, 24 months of history
 uv run reserve run configs/synthetic_small.yaml --experiment scenarios      # dev only: hypothetical macro paths, never scored
-uv run reserve monitor artifacts/runs/<run>                                 # drift lights for a finished run
+uv run reserve monitor artifacts/runs/<run> --contestant <name> --reference-end <date>   # drift lights for a finished run
 uv sync --extra agent && uv run reserve agent "do TSFMs help when history is only 12 months?"   # needs ANTHROPIC_API_KEY
 ```
 
