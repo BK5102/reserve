@@ -68,6 +68,12 @@ Both models sit behind the same quantile interface with their ids, licenses, siz
 
 Baseline, adverse, and severe what-if paths for unemployment and house prices feed the macro regression, and the result reports how far its forecasts move and which contestants respond at all; everything carries the label HYPOTHETICAL and runs on the development period only. Only the regression responds, because the other contestants do not use the economy. Analogy: a crash test shows how a car behaves in a crash, not whether you will have one.
 
+## Monitoring (2026-11-18)
+
+### D16. A three-light drift monitor
+
+`reserve monitor` rates each later forecast origin on 90% interval coverage, the loss compared with a backtest window, and (as a function) whether the macro inputs are outside their training range, each green, amber, or red with fixed thresholds. It was tested by planting a shift in synthetic outcomes at a known date and checking that every light turned red within a year of origins while staying quiet without drift. Analogy: testing a smoke alarm by lighting a match under it, and checking it stays silent when nobody is cooking.
+
 ## Where things stand
 
 Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model, the harness, scoring, configs, and the sealed test guard. Blocked on the owner: Freddie Mac registration and download, and a FRED API key. Not started: the agent, stress scenarios, the thin-history experiment, drift monitoring, and real TSFM runs.

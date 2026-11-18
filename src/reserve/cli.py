@@ -7,6 +7,7 @@ reserve run configs/synthetic_small.yaml
 reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only
 reserve run configs/synthetic_small.yaml --experiment scenarios      # HYPOTHETICAL, dev only
 reserve seal configs/freddie_sample.yaml --note "plan for the 2013-2018 test"
+reserve monitor artifacts/runs/<run id> --contestant B_age_curve --reference-end 2008-12
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from reserve import config as cfgmod
 from reserve import pipeline
@@ -89,6 +91,36 @@ def _seal(args: argparse.Namespace) -> int:
     return 0
 
 
+def _monitor(args: argparse.Namespace) -> int:
+    import polars as pl
+
+    from reserve import months
+    from reserve.monitoring import drift
+
+    run_dir = Path(args.run_dir)
+    result = json.loads((run_dir / "results.json").read_text(encoding="utf-8"))
+    preds = pl.read_parquet(run_dir / "predictions.parquet")
+    ev = result["config"]["evaluation"]
+    table = drift.monitor_predictions(
+        preds,
+        args.contestant,
+        months.parse(args.reference_end),
+        list(ev["quantiles"]),
+        int(ev["horizon"]),
+        window=args.window,
+    )
+    if result.get("synthetic"):
+        print("SYNTHETIC DATA: a pipeline check, not a result (methodology M17).")
+    print(f"drift monitor for {args.contestant} in {result['run_id']} (methodology M36)")
+    for r in table.iter_rows(named=True):
+        print(
+            f"  origin {r['origin']} known {r['known_at']}  {r['status']:5s}  "
+            f"coverage {r['coverage_90']:.3f} ({r['coverage_status']})  "
+            f"loss ratio {r['loss_ratio']:.2f} ({r['loss_status']})"
+        )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="reserve", description="Reserve experiments")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -111,10 +143,16 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("config")
     s.add_argument("--note", default="")
     s.set_defaults(func=_seal)
+    m = sub.add_parser("monitor", help="drift status of a finished run's forecasts")
+    m.add_argument("run_dir")
+    m.add_argument("--contestant", required=True)
+    m.add_argument("--reference-end", required=True, help="last origin of the reference window")
+    m.add_argument("--window", type=int, default=4, help="origins per monitoring window")
+    m.set_defaults(func=_monitor)
     args = ap.parse_args(argv)
     try:
         return args.func(args)
-    except (FileNotFoundError, cfgmod.ConfigError, macro.MissingKeyError) as err:
+    except (FileNotFoundError, ValueError, macro.MissingKeyError) as err:
         print(f"error: {err}", file=sys.stderr)
         return 1
 

@@ -286,6 +286,18 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 11. Monitoring
+
+**M36. A drift monitor with three fixed-threshold checks: interval coverage, loss ratio, and macro range.**
+- What: `src/reserve/monitoring/drift.py`, run with `reserve monitor RUN_DIR --contestant NAME --reference-end YYYY-MM`. For each forecast origin after a reference (backtest) window, it looks at the last 4 origins whose 12-month outcomes have arrived (`known_at` = origin plus 12 months) and rates each check green, amber, or red. Coverage of the 90% interval: red when the top of its 95% Wilson interval is below 90%, amber when the share is more than 5 points below 90%. Loss ratio (recent mean quantile loss over the reference window's): amber above 1.5, red above 2. Macro range (a function, not yet in the command): a feature outside the central 90% of its training values is amber, outside their minimum and maximum red, because contestant C then extrapolates. The overall status is the worst of the checks.
+- Why: PLAN.md FR13 asks for a simple drift monitor with thresholds, tested on synthetic drift, and model risk practice expects ongoing monitoring after a model is built (PLAN.md Part 2). These three answer the questions a reviewer would ask first: are the ranges still honest, are errors growing, and is the economy outside what the model has seen. Analogy: a car dashboard with three warning lights instead of a full engine report.
+- Why these thresholds: the coverage red line asks for evidence beyond bad luck (if forecasts were independent); the amber line catches a visible gap earlier. The loss-ratio lines (1.5 and 2) and the 4-origin window (one year of quarterly origins) are judgment calls, not taken from any standard, and are constants in the module.
+- Tests: forecasts calibrated by construction stay non-red on synthetic data with no drift; when outcomes shift by two standard deviations from a known origin, every check is red within the window; each threshold is checked by hand; the synthetic recession's unemployment is red against a pre-recession training range.
+- Considered: the population stability index (PSI), a common score-drift measure in credit scoring with rule-of-thumb lines at 0.1 and 0.25 (an industry convention; no primary source checked). Not used: it needs many items per period, and a portfolio has only a few new vintages a year.
+- Limitation: the coverage test treats forecasts in a window as independent, which they are not (L20), so red can come too easily; outcomes arrive 12 months after the forecast, so drift is seen late; the thresholds are not tuned with a risk team (PLAN.md Part 4 lists that as next work).
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -319,3 +331,4 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L25 | TimesFM 2.5's pretraining data extends past the test period | Possible contamination if it is ever run | Cutoff recorded as undisclosed with the known component dates; date-masked input; stated with any result (M33) |
 | L26 | Thin-history targets are only 6-month-old vintages | Few targets per level, so low power; results say nothing about older vintages | Same targets at every level; Holm across all levels; dev period only (M34) |
 | L27 | Scenario sizes are round numbers, not calibrated; only C responds | Scenario outputs are illustrations, not stress-test results | Labelled HYPOTHETICAL everywhere, never scored, dev period only (M35) |
+| L28 | Drift thresholds are judgment calls and outcomes arrive 12 months late | The monitor can alarm too easily or too late | Thresholds are named constants, tested on synthetic drift with a known start; tuning with a risk team listed as next work (M36) |

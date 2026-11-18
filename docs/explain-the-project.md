@@ -121,3 +121,13 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** calibrating to official supervisory scenarios (not consulted, so not claimed), and building exact paths from the real unemployment history (more complex for little gain at this stage).
 - **Cause and effect:** only C responds, because the other contestants, including the zero-shot pretrained model, do not use the economy at all. That is a finding about the design worth stating: in a downturn, the pretrained model as used here cannot react to a forecast of rising unemployment.
 - **How to say it:** "My stress scenarios are labelled hypothetical everywhere and never scored, and they showed that only the regression with economic inputs reacts to them, which is exactly the gap a pretrained model with covariates would have to close."
+
+## Part 6. Monitoring
+
+### Step 13. Add a drift monitor and test it on drift I planted
+
+- **What I did:** built a monitor that rates three warning lights (are the 90% ranges still catching 90% of outcomes, are errors growing compared with the backtest, and is the economy outside what the model was trained on) green, amber, or red, and a `reserve monitor` command that applies it to any finished run.
+- **Why:** a model is not finished when it is built; reviewers expect ongoing checks that it still works, and the plan asks for a simple monitor with thresholds.
+- **What else I considered:** the population stability index, a standard credit-scoring drift score, which needs many items per period while a portfolio adds only a few vintages a year.
+- **Cause and effect:** on fake forecasts that are right by construction it stays non-red, and when I shift the outcomes from a known date every light turns red within a year of origins. One honest weakness: the outcome of a 12-month forecast arrives 12 months later, so drift is always seen late.
+- **How to say it:** "I test the monitor the way you test a smoke alarm: I plant the drift at a known date and check that it goes off, and that it stays quiet when nothing is wrong."

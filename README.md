@@ -59,6 +59,7 @@ For the Chronos-Bolt-tiny adapter: `uv sync --extra tsfm` (CPU-only PyTorch) and
 | Rolling origins and scores from the shared Cleanroom (splits, quantile losses, coverage, Diebold-Mariano, Holm, sealed runs) | `src/reserve/evaluation/` | Hand-computed scores; sealed-run guard refuses a missing or changed lock |
 | Thin-history experiment: the portfolio is 6, 12, or 24 months old, same targets at every level, dev only | `src/reserve/evaluation/experiments.py` | A spy contestant sees no older vintage; corrupted-future leak test; Holm across levels |
 | HYPOTHETICAL macro scenarios (baseline, adverse, severe) for contestant C, never scored, dev only | `src/reserve/stress/scenarios.py` | Paths by hand; baseline equals the flat path; leak test on later macro releases |
+| Drift monitor: 90% coverage, loss ratio against a backtest window, macro range; `reserve monitor` | `src/reserve/monitoring/drift.py` | Planted synthetic drift turns red within the window; thresholds by hand |
 
 The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tree/main/packages/cleanroom), installed from the Tells repo at tag `cleanroom-v0.2`.
 
@@ -82,4 +83,4 @@ The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tr
 
 ## Not built yet
 
-The agent harness (planner, runner, critic, reporter), the drift monitor, and real runs of the second and third TSFMs (Chronos-2 and TimesFM 2.5 are stubs; PLAN.md Part 6).
+The agent harness (planner, runner, critic, reporter) and real runs of the second and third TSFMs (Chronos-2 and TimesFM 2.5 are stubs; PLAN.md Part 6).
