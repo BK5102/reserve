@@ -1,12 +1,14 @@
-"""Command line: `reserve prepare`, `reserve run`, `reserve seal`.
+"""Command line for Reserve. The full real-data order is in docs/runbook.md.
 
 reserve prepare synthetic --config configs/synthetic_small.yaml
 reserve prepare freddie --config configs/freddie_sample.yaml
 reserve prepare macro [--out data/raw/fred] [--latest] [--record cassette.json]
 reserve run configs/synthetic_small.yaml
+reserve run configs/freddie_sample.yaml --period recession             # descriptive only
 reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only
 reserve run configs/synthetic_small.yaml --experiment scenarios      # HYPOTHETICAL, dev only
-reserve seal configs/freddie_sample.yaml --note "plan for the 2013-2018 test"
+reserve checksums --config configs/freddie_test.yaml                # -> data/checksums.sha256
+reserve seal configs/freddie_test.yaml --note "plan for the 2013-2018 test"
 reserve monitor artifacts/runs/<run id> --contestant B_age_curve --reference-end 2008-12
 reserve agent "do TSFMs help when history is only 12 months?" [--cassette c.json] [--allow-test]
 """
@@ -14,6 +16,7 @@ reserve agent "do TSFMs help when history is only 12 months?" [--cassette c.json
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
@@ -64,6 +67,11 @@ def _print_scores(scores: dict) -> None:
 
 def _run(args: argparse.Namespace) -> int:
     cfg = cfgmod.load(args.config)
+    if args.period:
+        # Unsealed periods only: the test is scored from its own sealed config (M31, M42).
+        cfg = copy.deepcopy(cfg)
+        cfg["evaluation"]["period"] = args.period
+        cfgmod.validate(cfg)
     out = pipeline.run(cfg, experiment=args.experiment)
     result = json.loads((out / "results.json").read_text(encoding="utf-8"))
     if result["synthetic"]:
@@ -93,8 +101,20 @@ def _run(args: argparse.Namespace) -> int:
 
 def _seal(args: argparse.Namespace) -> int:
     cfg = cfgmod.load(args.config)
-    lk = pipeline.seal(cfg, note=args.note)
-    print(f"sealed {lk.path} (config hash {lk.config_hash[:12]}); commit it before a test run")
+    lk = pipeline.seal(cfg, note=args.note, rehearsal=args.rehearsal)
+    if args.rehearsal:
+        print(pipeline.REHEARSAL_NOTE.strip())
+    print(f"sealed {lk.path} (config hash {lk.config_hash[:12]})")
+    print(f"next: git add {lk.path.as_posix()} data/checksums.sha256 && git commit, then run once")
+    return 0
+
+
+def _checksums(args: argparse.Namespace) -> int:
+    from reserve import checksums
+
+    cfg = cfgmod.load(args.config)
+    path, sums = checksums.write(cfg)
+    print(f"wrote {path}: {len(sums)} files (methodology M42); commit it with the lock")
     return 0
 
 
@@ -171,6 +191,12 @@ def main(argv: list[str] | None = None) -> int:
     r = sub.add_parser("run", help="score a config's evaluation period")
     r.add_argument("config")
     r.add_argument(
+        "--period",
+        choices=["dev", "recession"],
+        help="score this unsealed period instead of the config's own (the test needs its "
+        "sealed config)",
+    )
+    r.add_argument(
         "--experiment",
         choices=["thin_history", "scenarios"],
         help="a harness option on the dev period only (scenarios are HYPOTHETICAL)",
@@ -179,7 +205,16 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("seal", help="seal a config and its data before test scoring")
     s.add_argument("config")
     s.add_argument("--note", default="")
+    s.add_argument(
+        "--rehearsal",
+        action="store_true",
+        help="scripts/rehearse_real_path.py only: seal SYNTHETIC rehearsal data (refused for "
+        "real data)",
+    )
     s.set_defaults(func=_seal)
+    k = sub.add_parser("checksums", help="record SHA-256 of the raw downloads before sealing")
+    k.add_argument("--config", required=True)
+    k.set_defaults(func=_checksums)
     m = sub.add_parser("monitor", help="drift status of a finished run's forecasts")
     m.add_argument("run_dir")
     m.add_argument("--contestant", required=True)
@@ -197,7 +232,14 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     try:
         return args.func(args)
-    except (FileNotFoundError, ValueError, macro.MissingKeyError) as err:
+    except (
+        FileNotFoundError,
+        ValueError,
+        PermissionError,
+        ImportError,
+        macro.MissingKeyError,
+    ) as err:
+        # PermissionError covers the sealed-run guard (SealedRunError, LockMissingError).
         print(f"error: {err}", file=sys.stderr)
         return 1
 

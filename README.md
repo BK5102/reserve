@@ -44,7 +44,7 @@ uv run reserve prepare freddie --config configs/freddie_sample.yaml
 uv run reserve run configs/freddie_sample.yaml    # development period only
 ```
 
-Record the data-fit numbers in `docs/data-fit.md` (the gate: at least 60 usable vintages and 20 events per vintage by age 12) before anything else. The test period (2013 to 2018 origins) is scored only after `uv run reserve seal configs/freddie_sample.yaml`, committing the lock, and setting `evaluation.period: test`.
+Record the data-fit numbers in `docs/data-fit.md` (the gate: at least 60 usable vintages and 20 events per vintage by age 12) before anything else. The test period (2013 to 2018 origins) is scored once, from its own config `configs/freddie_test.yaml`, after `uv run reserve checksums --config configs/freddie_test.yaml`, `uv run reserve seal configs/freddie_test.yaml`, and committing the lock and checksums.
 
 For the agent: `uv sync --extra agent`, set `ANTHROPIC_API_KEY` in the environment (never in a file), then `uv run reserve agent "do TSFMs help when history is only 12 months?"`. Add `--record cassettes/name.json` to save the conversation for replay. It has not been run live yet.
 

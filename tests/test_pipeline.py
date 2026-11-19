@@ -2,12 +2,13 @@
 
 import copy
 import json
+from pathlib import Path
 
 import polars as pl
 import pytest
 from cleanroom.guard import SealedRunError
 
-from reserve import cli, pipeline
+from reserve import checksums, cli, pipeline
 from reserve import config as cfgmod
 from reserve.data import synthetic
 
@@ -106,6 +107,7 @@ def freddie_style(tmp_path):
         "raw_dir": str(tmp_path / "raw" / "freddie"),
         "fred_dir": str(tmp_path / "raw" / "fred"),
         "interim_dir": str(tmp_path / "interim_f"),
+        "checksums": str(tmp_path / "checksums.sha256"),
     }
     cfg["evaluation"]["origins"] = {
         "dev": {"first": "2007-03", "last": "2009-06"},
@@ -126,8 +128,6 @@ def test_simulator_files_read_as_freddie_are_labelled_synthetic(freddie_style, c
 
 
 def test_run_refuses_tables_without_a_manifest(freddie_style):
-    from pathlib import Path
-
     (Path(freddie_style["data"]["interim_dir"]) / pipeline.MANIFEST).unlink()
     with pytest.raises(FileNotFoundError, match="prepare"):
         pipeline.run(freddie_style)
@@ -140,10 +140,48 @@ def test_test_period_needs_a_lock(freddie_style):
         pipeline.run(cfg, _allow_untracked_lock_for_tests=True)
 
 
+def test_shipped_dev_and_test_configs_are_the_same_plan():
+    """What is tuned on dev is what gets sealed: only the name and the period differ."""
+    dev = cfgmod.load("configs/freddie_sample.yaml")
+    test = cfgmod.load("configs/freddie_test.yaml")
+    assert dev["evaluation"]["period"] == "dev" and test["evaluation"]["period"] == "test"
+    assert test["evaluation"]["origins"]["test"] == {"first": "2013-03", "last": "2018-12"}
+    assert test["evaluation"]["horizon"] == 12
+    for c in (dev, test):
+        c.pop("name")
+        c["evaluation"].pop("period")
+    assert dev == test
+
+
+def test_seal_refuses_until_the_data_and_plan_are_ready(freddie_style):
+    cfg = copy.deepcopy(freddie_style)
+    found = " ".join(pipeline.seal_problems(cfg))
+    assert "period is 'dev'" in found and "does not exist" in found  # no checksums yet
+    assert "synthetic markers" in found
+    cfg["evaluation"]["period"] = "test"
+    checksums.write(cfg)
+    found = pipeline.seal_problems(cfg)
+    assert len(found) == 2 and "synthetic markers" in found[0] and "'fake'" in found[1]
+    with pytest.raises(pipeline.SealRefused, match="cannot seal yet"):
+        pipeline.seal(cfg)
+    assert pipeline.seal_problems(cfg, rehearsal=True) == []  # rehearsal: synthetic only
+    stub = copy.deepcopy(cfg)
+    stub["contestants"]["tsfm"] = ["timesfm_2p5"]
+    assert any("stub" in p or "needs" in p for p in pipeline.seal_problems(stub, rehearsal=True))
+    # A raw file that changes after its checksum was recorded blocks the seal.
+    raw = sorted(Path(cfg["data"]["raw_dir"]).glob("sample_orig_*.txt"))[0]
+    raw.write_text(raw.read_text() + "\n")
+    found = pipeline.seal_problems(cfg, rehearsal=True)
+    assert any("changed since" in p for p in found)
+    assert any("prepared from other raw files" in p for p in found)
+
+
 def test_sealed_run_counts_attempts_and_rejects_changed_plans(freddie_style):
     cfg = copy.deepcopy(freddie_style)
     cfg["evaluation"]["period"] = "test"
-    lk = pipeline.seal(cfg, note="unit test")
+    checksums.write(cfg)
+    lk = pipeline.seal(cfg, note="unit test", rehearsal=True)
+    assert lk.path.read_text().count("REHEARSAL") == 1
     out = pipeline.run(cfg, _allow_untracked_lock_for_tests=True)
     res = json.loads((out / "results.json").read_text())
     assert res["sealed"]["run_number"] == 1 and res["role"] == "sealed test"
@@ -158,7 +196,8 @@ def test_sealed_run_counts_attempts_and_rejects_changed_plans(freddie_style):
 def test_real_git_checks_refuse_an_uncommitted_lock(freddie_style):
     cfg = copy.deepcopy(freddie_style)
     cfg["evaluation"]["period"] = "test"
-    pipeline.seal(cfg)
+    checksums.write(cfg)
+    pipeline.seal(cfg, rehearsal=True)
     with pytest.raises(SealedRunError):
         pipeline.run(cfg)  # the lock in a temp folder is not tracked by git
 
@@ -175,6 +214,35 @@ def test_cli(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "SYNTHETIC DATA" in out and "reference:" in out
     assert cli.main(["prepare", "freddie", "--config", str(path)]) == 2  # wrong source
+
+
+def test_cli_seal_path_errors_are_messages_not_tracebacks(freddie_style, tmp_path, capsys):
+    import yaml
+
+    cfg = copy.deepcopy(freddie_style)
+    cfg["evaluation"]["period"] = "test"
+    path = tmp_path / "t.yaml"
+    path.write_text(yaml.safe_dump(cfg))
+    assert cli.main(["run", str(path)]) == 1  # no lock: SealedRunError becomes a message
+    assert "seal" in capsys.readouterr().err
+    assert cli.main(["seal", str(path)]) == 1
+    assert "cannot seal yet" in capsys.readouterr().err
+    assert cli.main(["checksums", "--config", str(path)]) == 0
+    assert cli.main(["seal", str(path), "--rehearsal"]) == 0
+    assert "REHEARSAL ON SYNTHETIC DATA" in capsys.readouterr().out
+    dev = tmp_path / "d.yaml"
+    dev.write_text(yaml.safe_dump(freddie_style))
+    with pytest.raises(SystemExit):  # the test period cannot be picked with --period
+        cli.main(["run", str(dev), "--period", "test"])
+
+
+def test_checksum_file_round_trips_and_rejects_bad_lines(freddie_style, tmp_path):
+    path, sums = checksums.write(freddie_style)
+    assert checksums.read(path) == sums and len(sums) == 2 * 5 + 3  # 5 years + 3 FRED tables
+    assert path.read_text().startswith("# SHA-256")
+    assert checksums.problems(freddie_style) == []
+    path.write_text(path.read_text() + "not a checksum line\n")
+    assert "is not" in checksums.problems(freddie_style)[0]
 
 
 def test_prepare_macro_needs_a_key(monkeypatch, capsys):

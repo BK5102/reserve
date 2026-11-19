@@ -55,7 +55,9 @@ uv run python scripts/check_data_fit.py synthetic configs/synthetic_fit.yaml
 uv run reserve prepare macro                  # needs FRED_API_KEY in the environment
 uv run reserve prepare freddie --config configs/freddie_sample.yaml      # after the Freddie Mac download
 uv run python scripts/check_data_fit.py freddie data/raw/freddie --fred data/raw/fred
-uv run reserve seal configs/freddie_sample.yaml   # before any test score; commit the lock
+uv run reserve run configs/freddie_sample.yaml --period recession   # descriptive only
+uv run reserve checksums --config configs/freddie_test.yaml   # raw-file SHA-256 into data/checksums.sha256
+uv run reserve seal configs/freddie_test.yaml   # refuses until real data is checksummed; commit lock + checksums
 uv run reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only: 6, 12, 24 months of history
 uv run reserve run configs/synthetic_small.yaml --experiment scenarios      # dev only: hypothetical macro paths, never scored
 uv run reserve monitor artifacts/runs/<run> --contestant <name> --reference-end <date>   # drift lights for a finished run

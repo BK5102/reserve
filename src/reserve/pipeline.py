@@ -149,9 +149,82 @@ def data_checksum(files: dict[str, Path]) -> str:
     return provenance.config_hash({"inputs": joined})
 
 
-def seal(cfg: dict[str, Any], note: str = "") -> lock.Lock:
-    """Seal a config and its prepared data before any test score exists (CLAUDE.md rule 3)."""
+class SealRefused(ValueError):
+    """The config or its data is not ready to be sealed (methodology M42)."""
+
+
+REHEARSAL_NOTE = "REHEARSAL ON SYNTHETIC DATA, not a real test plan (M41). "
+
+
+def seal_problems(cfg: dict[str, Any], rehearsal: bool = False) -> list[str]:
+    """Everything that must be true before a plan is sealed; [] when it is ready (M42).
+
+    `rehearsal` is for scripts/rehearse_real_path.py only. It does not loosen any check
+    for real data: it is refused unless the data carries synthetic markers, and it lets
+    the `fake` stand-in TSFM through so the rehearsal runs without the `tsfm` extra.
+    """
+    from reserve import checksums
+    from reserve.models.tsfm import MODEL_INFO, missing_packages
+
+    found: list[str] = []
+    if cfg["data"]["source"] != "freddie":
+        found.append("only a Freddie Mac config is sealed; synthetic configs are never tested")
+        return found
+    period = cfg["evaluation"]["period"]
+    if period not in cfgmod.SEALED_PERIODS:
+        found.append(
+            f"evaluation.period is {period!r}; seal the test config itself (configs/"
+            "freddie_test.yaml). The period is part of the hashed plan, so a lock made for "
+            "another period can never open the test"
+        )
+    try:
+        load_prepared(cfg)
+        synthetic_data = is_synthetic(cfg)
+    except FileNotFoundError as err:
+        found.append(f"{err}")
+        return found
+    if synthetic_data and not rehearsal:
+        found.append(
+            "the prepared tables carry synthetic markers (M40): only Freddie Mac's own files "
+            "can be sealed"
+        )
+    if rehearsal and not synthetic_data:
+        found.append("--rehearsal seals synthetic rehearsal data only; seal real data without it")
+    found += checksums.problems(cfg)
+    raw = {(f.name, f.stat().st_size) for f in checksums.raw_files(cfg)["freddie"]}
+    prepared = {(f["name"], f["bytes"]) for f in read_manifest(cfg)["raw_files"]}
+    if raw != prepared:
+        found.append("the interim tables were prepared from other raw files; run `reserve prepare`")
+    spec = cfg["contestants"]
+    for name in ("A_last_increment", "B_age_curve", "C_hazard_macro"):
+        if name not in spec:
+            found.append(f"the sealed plan needs every classical baseline; {name} is missing")
+    tsfms = spec.get("tsfm") or []
+    if not tsfms:
+        found.append("the sealed plan has no TSFM contestant")
+    for name in tsfms:
+        if name == "fake" and rehearsal:
+            continue
+        info = MODEL_INFO.get(name)
+        if info is None or info["status"] != "real":
+            status = "unknown" if info is None else info["status"]
+            found.append(f"TSFM {name!r} is {status}, not a real model; remove it before sealing")
+        elif missing := missing_packages(name):
+            found.append(f"TSFM {name!r} needs {missing}; install its extra before sealing")
+    return found
+
+
+def seal(cfg: dict[str, Any], note: str = "", rehearsal: bool = False) -> lock.Lock:
+    """Seal a config and its prepared data before any test score exists (CLAUDE.md rule 3).
+
+    Refuses (`SealRefused`) unless `seal_problems` finds nothing, so a lock always names
+    real, checksummed data and a plan that can run.
+    """
+    found = seal_problems(cfg, rehearsal=rehearsal)
+    if found:
+        raise SealRefused("cannot seal yet:\n  - " + "\n  - ".join(found))
     _, _, files = load_prepared(cfg)
+    note = (REHEARSAL_NOTE if rehearsal else "") + note
     return lock.seal(cfg, cfg.get("lock_dir", "locks"), note=note, data_sha256=data_checksum(files))
 
 

@@ -151,3 +151,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** labelling by folder or file name. Rejected: copying fake files into the real folder would defeat it.
 - **Cause and effect:** a fake number can no longer look real by accident. The data-fit script also now stops with a non-zero exit code when the gate fails, so the go/no-go step is a command, not a line someone has to notice.
 - **How to say it:** "My rehearsal caught that fake data in the real folder produced unlabelled results, so now the label travels inside every record and nothing built from them can lose it."
+
+### Step 16. Give the sealed test its own config and make sealing refuse anything unready
+
+- **What I did:** added `configs/freddie_test.yaml` (the development config with the period set to the 2013 to 2018 test), a `reserve checksums` command that records the SHA-256 of every raw download, and a list of checks that `reserve seal` must pass first: real Freddie Mac files, every file checksummed and unchanged, tables built from those exact files, all three classical baselines, and only real, installed pretrained models.
+- **Why:** the rehearsal showed the documented path could never work. I had told myself to seal the development config and then change its period to "test", but the period is part of the sealed plan, so the edited file no longer matched its lock. Separately, a sealed run that crashes still counts as an attempt, so sealing a plan whose model is not installed would waste the one honest test.
+- **What else I considered:** a `--period test` flag on one config. Rejected for the same reason: it changes the plan's fingerprint.
+- **Cause and effect:** a test checks the two configs differ only in name and period, so what I tune on is what I seal. Sealing now fails with a list of every problem at once instead of producing a lock that cannot be used. Errors from the guard now print as messages instead of Python tracebacks.
+- **How to say it:** "My dress rehearsal found that my own instructions for sealing the test were a dead end, so the test now has its own config, and the seal command refuses until the data is real, fingerprinted, and every model in the plan can actually run."

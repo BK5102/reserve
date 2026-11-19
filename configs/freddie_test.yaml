@@ -1,0 +1,42 @@
+# The sealed headline test (methodology M31, M42). Identical to freddie_sample.yaml except
+# evaluation.period, which is part of the hashed plan: a lock made for the dev config can
+# never open the test, so the test has its own config.
+#
+# Order (docs/runbook.md): prepare the data, `reserve checksums --config` this file,
+# `reserve seal` this file, commit the lock and data/checksums.sha256, then
+# `reserve run configs/freddie_test.yaml` once. `reserve seal` refuses until the raw
+# Freddie Mac files are checksummed, carry no synthetic markers, and every contestant is
+# real and installed. Any edit after sealing changes the hash and needs a new lock, which
+# the record of attempts will show.
+name: freddie_test
+seed: 0
+data:
+  source: freddie
+  raw_dir: data/raw/freddie
+  fred_dir: data/raw/fred
+  interim_dir: data/interim/freddie_sample
+  checksums: data/checksums.sha256
+macro:
+  mode: asof
+evaluation:
+  period: test
+  origins:
+    dev: {first: "2010-03", last: "2012-03"}
+    # Headline test origins 2013Q1 to 2018Q4 (quarter ends), horizon 12: the last
+    # targets are 2019-12, before COVID (methodology M12, M20, M31).
+    test: {first: "2013-03", last: "2018-12"}
+    recession: {first: "2007-03", last: "2009-03"}
+  step_months: 3
+  horizon: 12
+  min_history: 6
+  quantiles: [0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95]
+  exclude_target_windows: [["2020-01", "2021-12"]]
+contestants:
+  A_last_increment: {window: 3}
+  B_age_curve: {donors: 8}
+  C_hazard_macro: {draws: 200, exit_window: 24}
+  # Real TSFMs only; needs `uv sync --extra tsfm`. Add timesfm_2p5 before sealing if the
+  # timesfm extra is installed (docs/tsfm-notes.md); never after.
+  tsfm: [chronos_bolt_tiny]
+lock_dir: locks
+artifacts_dir: artifacts/runs
