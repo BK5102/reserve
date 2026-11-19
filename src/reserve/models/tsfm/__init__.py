@@ -31,7 +31,7 @@ MODEL_INFO: dict[str, dict] = {
     "chronos2": {
         "model_id": chronos2.MODEL_ID,
         "revision": chronos2.REVISION,
-        "status": "stub",
+        "status": "real",
         "pretraining_cutoff": chronos2.PRETRAINING_CUTOFF,
         "requires": ("torch", "chronos"),  # the `tsfm` extra
     },

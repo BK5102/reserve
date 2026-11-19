@@ -185,10 +185,11 @@ def test_stub_tsfms_refuse_to_run_and_carry_their_metadata():
     from reserve.models.tsfm import KNOWN_MODELS, MODEL_INFO, chronos2, timesfm25
 
     assert set(MODEL_INFO) == set(KNOWN_MODELS)
-    for name in ("chronos2", "timesfm_2p5"):
+    for name in ("timesfm_2p5",):
         with pytest.raises(NotImplementedError, match="stub"):
             make_forecaster(name)
         assert MODEL_INFO[name]["status"] == "stub"
+    for name in ("chronos2", "timesfm_2p5"):
         assert "undisclosed" in MODEL_INFO[name]["pretraining_cutoff"]
     assert chronos2.REVISION == "29ec3766d36d6f73f0696f85560a422f50e8498c"
     assert set(QUANTILES) <= set(chronos2.NATIVE_LEVELS)  # every Reserve level is native

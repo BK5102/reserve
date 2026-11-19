@@ -1,4 +1,5 @@
-# Synthetic end-to-end check with the real Chronos-Bolt-tiny (methodology M17, M27, M32).
+# Synthetic end-to-end check with the real Chronos-Bolt-tiny and Chronos-2 (methodology M17,
+# M27, M32, M43).
 # NOT real data and never a result: it proves the adapter runs and measures its CPU cost.
 # Needs `uv sync --extra tsfm`. Uses the same fake portfolio as synthetic_small.yaml, so
 # `reserve prepare synthetic --config configs/synthetic_small.yaml` is enough.
@@ -29,6 +30,6 @@ contestants:
   A_last_increment: {window: 3}
   B_age_curve: {donors: 8}
   C_hazard_macro: {draws: 200, exit_window: 24}
-  tsfm: [fake, chronos_bolt_tiny]
+  tsfm: [fake, chronos_bolt_tiny, chronos2]
 lock_dir: locks
 artifacts_dir: artifacts/runs

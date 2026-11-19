@@ -35,6 +35,6 @@ contestants:
   C_hazard_macro: {draws: 200, exit_window: 24}
   # Real TSFMs only; needs `uv sync --extra tsfm` (docs/tsfm-notes.md). Keep this list
   # identical to configs/freddie_test.yaml.
-  tsfm: [chronos_bolt_tiny]
+  tsfm: [chronos_bolt_tiny, chronos2]
 lock_dir: locks
 artifacts_dir: artifacts/runs

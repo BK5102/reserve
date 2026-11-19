@@ -167,3 +167,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** running the rehearsal inside the test suite (it would double the test time) and inside the repo itself (it would leave fake files and a fake lock where the real ones go).
 - **Cause and effect:** the first rehearsal found the three faults described in Steps 15 and 16 (unlabelled fake results, a sealing path that could never work, and tracebacks instead of messages). Now any change that breaks the real path fails CI before real data exists. What it cannot test is anything only real files have, such as their size or unexpected codes.
 - **How to say it:** "Before the real data arrived I ran my exact runbook end to end on simulated files in a throwaway repo, including sealing and the one test run; it caught three bugs, and it now runs in CI so the real path cannot quietly break."
+
+### Step 18. Make the second pretrained model real
+
+- **What I did:** turned the Chronos-2 stub into a working adapter, checked at load time that it reports the 21 uncertainty levels it was trained on, and ran it on the synthetic portfolio next to Chronos-Bolt-tiny.
+- **Why:** the plan asks for three pretrained models, and Chronos-2 is the only one trained on the 5% and 95% levels, so its 90% range is genuinely a 90% range rather than a stretched 80% one.
+- **What else I considered:** letting it share information across all the vintages in a batch (its cross-learning option). Rejected: a vintage's forecast would then depend on which other vintages happened to be in the batch.
+- **Cause and effect:** it costs about 18 milliseconds per vintage forecast on my laptop's CPU, ten times the tiny model and still negligible for the real test. It has only run on synthetic data, and its training data cutoff is undisclosed, which I state with any result.
+- **How to say it:** "My second pretrained model is the only one trained on the exact uncertainty levels I score, so its 90% range is honest by construction, and I checked its output against the library's own before trusting it."
