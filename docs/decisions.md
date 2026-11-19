@@ -90,6 +90,10 @@ A dress rehearsal of the real-data commands on simulator files in the Freddie Ma
 
 The test period is scored from `configs/freddie_test.yaml`, identical to the development config except its name and period, because a lock fixes the whole config and editing the period afterwards breaks the match. `reserve checksums` writes `data/checksums.sha256`, and `reserve seal` refuses until the data is real, every raw file is checksummed and unchanged, and every contestant is a real, installed model. Analogy: an exam board will not seal the envelope until the paper is the final version, every page is numbered, and the exam room is booked.
 
+### D20. A dress rehearsal of the real-data commands, run in CI
+
+`scripts/rehearse_real_path.py` puts simulator files where the Freddie Mac download will go, inside a throwaway git repo, and runs every command of the runbook in order, including sealing, committing the lock, the sealed run, and a refused change of plan; CI runs it on every push. Its first run found three faults that unit tests had missed, and `reserve doctor` now checks the download folder (unzipped, flat, paired) and the keys before anything runs. Analogy: a fire drill through the real exits, not a check that each door opens on its own.
+
 ## Where things stand
 
 Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model and a real Chronos-Bolt-tiny adapter (run end to end on synthetic data), Chronos-2 and TimesFM 2.5 stubs, the harness, scoring, configs, the sealed test guard, the thin-history experiment, hypothetical macro scenarios, the drift monitor, and the agent (tools, runner, critic, reporter) on hand-written cassettes. Blocked on the owner: Freddie Mac registration and download, a FRED API key, and an Anthropic API key for a live agent run. Not started: TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, and slice analysis.

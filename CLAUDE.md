@@ -52,7 +52,10 @@ uv run ruff check . && uv run ruff format --check .
 uv run reserve prepare synthetic --config configs/synthetic_small.yaml   # fake data, seconds
 uv run reserve run configs/synthetic_small.yaml                          # pipeline check, not a result
 uv run python scripts/check_data_fit.py synthetic configs/synthetic_fit.yaml
+uv run reserve doctor --config configs/freddie_test.yaml   # downloads, keys, extras, git: ready?
+uv run python scripts/rehearse_real_path.py   # the real-data commands on SYNTHETIC files (CI runs it)
 uv run reserve prepare macro                  # needs FRED_API_KEY in the environment
+uv run reserve prepare macro --cassette tests/fixtures/fred/cassette.json --out <dir>   # replay, no key
 uv run reserve prepare freddie --config configs/freddie_sample.yaml      # after the Freddie Mac download
 uv run python scripts/check_data_fit.py freddie data/raw/freddie --fred data/raw/fred
 uv run reserve run configs/freddie_sample.yaml --period recession   # descriptive only

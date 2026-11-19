@@ -2,7 +2,9 @@
 
 reserve prepare synthetic --config configs/synthetic_small.yaml
 reserve prepare freddie --config configs/freddie_sample.yaml
+reserve doctor --config configs/freddie_test.yaml                    # is everything in place?
 reserve prepare macro [--out data/raw/fred] [--latest] [--record cassette.json]
+reserve prepare macro --cassette tests/fixtures/fred/cassette.json   # replay, no key, no network
 reserve run configs/synthetic_small.yaml
 reserve run configs/freddie_sample.yaml --period recession             # descriptive only
 reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only
@@ -28,6 +30,15 @@ from reserve.data import macro
 
 def _prepare(args: argparse.Namespace) -> int:
     if args.what == "macro":
+        if args.cassette:
+            if args.record:
+                print("--cassette replays and --record records; pass one", file=sys.stderr)
+                return 2
+            client = macro.CassetteFredClient(args.cassette, mode="replay")
+            paths = macro.download_all(client, args.out, realtime=not args.latest)
+            print(f"replayed from cassette {args.cassette} (no network, no key)")
+            print("wrote " + ", ".join(str(p) for p in paths))
+            return 0
         client = macro.HttpFredClient()
         if args.record:
             client = macro.CassetteFredClient(args.record, mode="record", backend=client)
@@ -109,6 +120,15 @@ def _seal(args: argparse.Namespace) -> int:
     return 0
 
 
+def _doctor(args: argparse.Namespace) -> int:
+    from reserve import doctor
+
+    lines, ready = doctor.check(cfgmod.load(args.config))
+    print("\n".join(lines))
+    print("ready to prepare the Freddie Mac files" if ready else "NOT READY: fix the FIX lines")
+    return 0 if ready else 3
+
+
 def _checksums(args: argparse.Namespace) -> int:
     from reserve import checksums
 
@@ -187,6 +207,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", default="data/raw/fred", help="macro only: output folder")
     p.add_argument("--latest", action="store_true", help="macro only: no ALFRED vintages")
     p.add_argument("--record", help="macro only: also save a cassette of the API responses")
+    p.add_argument("--cassette", help="macro only: replay a saved cassette instead of the API")
     p.set_defaults(func=_prepare)
     r = sub.add_parser("run", help="score a config's evaluation period")
     r.add_argument("config")
@@ -212,6 +233,9 @@ def main(argv: list[str] | None = None) -> int:
         "real data)",
     )
     s.set_defaults(func=_seal)
+    d = sub.add_parser("doctor", help="check downloads, keys, extras, and git before a step")
+    d.add_argument("--config", default="configs/freddie_test.yaml")
+    d.set_defaults(func=_doctor)
     k = sub.add_parser("checksums", help="record SHA-256 of the raw downloads before sealing")
     k.add_argument("--config", required=True)
     k.set_defaults(func=_checksums)
