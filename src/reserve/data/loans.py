@@ -312,6 +312,23 @@ def parse_delinquency(status: pl.Expr) -> list[pl.Expr]:
     ]
 
 
+# Every record the simulator writes carries these values (methodology M17, M40). Real
+# Freddie Mac files do not: "ZZ" is not a US state or territory code, and no seller is
+# named "SYNTHETIC". A file read through the real-data path is labelled synthetic if any
+# of its records carries a marker.
+SYNTHETIC_MARKERS = {"seller_name": "SYNTHETIC", "property_state": "ZZ"}
+MARKER_COLUMNS = tuple(SYNTHETIC_MARKERS)
+
+
+def synthetic_records(orig: pl.DataFrame) -> int:
+    """How many origination records carry a synthetic marker (0 for real data)."""
+    present = [c for c in SYNTHETIC_MARKERS if c in orig.columns]
+    if not present:
+        raise ValueError(f"origination frame needs {MARKER_COLUMNS} to check for synthetic data")
+    hit = pl.any_horizontal(pl.col(c) == SYNTHETIC_MARKERS[c] for c in present).fill_null(False)
+    return int(orig.select(hit.sum()).item())
+
+
 def vintage_from_loan_id(loan_id: pl.Expr) -> pl.Expr:
     """Loan id "F05Q1..." gives vintage "2005Q1". Year 99 is 1999 (the dataset starts in 1999)."""
     yy = loan_id.str.slice(1, 2).cast(pl.Int64, strict=False)

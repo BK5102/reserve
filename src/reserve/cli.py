@@ -41,6 +41,12 @@ def _prepare(args: argparse.Namespace) -> int:
         print(f"{args.config} is a {cfg['data']['source']} config", file=sys.stderr)
         return 2
     sums = pipeline.prepare(cfg)
+    manifest = pipeline.read_manifest(cfg)
+    if manifest["synthetic"]:
+        print(
+            f"SYNTHETIC DATA: {manifest['synthetic_records']} of {manifest['n_loans']} loans carry "
+            "the simulator's markers; every result from these tables is labelled synthetic (M40)."
+        )
     for name, digest in sums.items():
         print(f"{cfg['data']['interim_dir']}/{name}  sha256 {digest[:16]}")
     return 0

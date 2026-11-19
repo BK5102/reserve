@@ -115,6 +115,24 @@ def freddie_style(tmp_path):
     return cfg
 
 
+def test_simulator_files_read_as_freddie_are_labelled_synthetic(freddie_style, capsys):
+    """Fake files in the real layout must never produce an unlabelled result (M40)."""
+    manifest = pipeline.read_manifest(freddie_style)
+    assert manifest["source"] == "freddie" and manifest["synthetic"] is True
+    assert manifest["synthetic_records"] == manifest["n_loans"] == 20 * 120
+    assert len(manifest["raw_files"]) == 2 * 5  # 20 vintages from 2004Q1: 2004 to 2008
+    res = json.loads((pipeline.run(freddie_style) / "results.json").read_text())
+    assert res["synthetic"] is True
+
+
+def test_run_refuses_tables_without_a_manifest(freddie_style):
+    from pathlib import Path
+
+    (Path(freddie_style["data"]["interim_dir"]) / pipeline.MANIFEST).unlink()
+    with pytest.raises(FileNotFoundError, match="prepare"):
+        pipeline.run(freddie_style)
+
+
 def test_test_period_needs_a_lock(freddie_style):
     cfg = copy.deepcopy(freddie_style)
     cfg["evaluation"]["period"] = "test"

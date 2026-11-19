@@ -151,3 +151,18 @@ def test_find_sample_files(tmp_path):
     assert [(y, o.name, p.name) for y, o, p in found] == [
         (2005, "sample_orig_2005.txt", "sample_perf_2005.txt")
     ]
+
+
+def test_synthetic_markers_are_absent_from_real_layout_fixtures():
+    """The hand-built fixtures mimic real records, so no synthetic marker appears (M40)."""
+    orig = loans.read_origination(FIX / "sample_orig_2005.txt", columns=loans.MARKER_COLUMNS)
+    assert loans.synthetic_records(orig) == 0
+    marked = orig.with_columns(
+        pl.when(pl.int_range(pl.len()) == 0)
+        .then(pl.lit("ZZ"))
+        .otherwise(pl.col("property_state"))
+        .alias("property_state")
+    )
+    assert loans.synthetic_records(marked) == 1
+    with pytest.raises(ValueError, match="needs"):
+        loans.synthetic_records(orig.drop(*loans.MARKER_COLUMNS))

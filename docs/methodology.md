@@ -163,6 +163,7 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 - Gate (from NEXT_PROJECTS_PLAN.md): at least 60 usable vintages, and at least 20 events per vintage by age 12. "Usable" means observed through age 24 (12 months of history plus a 12-month forecast). The plan's "20 events per cell at age 12" is applied to the median usable vintage's cumulative events by age 12, because the target is cumulative and single-month counts at age 12 are far smaller; the share of vintages meeting 20 and the single-month counts are reported next to it.
 - Noise-floor check: for each vintage, the 12-month increment from age 12 to 24 is forecast by the mean increment of the previous four vintages, and the root mean squared error is divided by the binomial standard deviation of the increment. A ratio near 1 means even a perfect model would gain little, the same trap as Tells' TabFormer ceiling.
 - Why: Tells' biggest lesson was that two popular datasets could not test its idea at all, which only measurement revealed (Tells `docs/data-fit.md`).
+- Exit code: the script exits 0 when the gate passes and 3 when it fails, so the go/no-go step in `docs/runbook.md` is a command that stops, not a line to read.
 - Considered: going straight to models on the sample. Rejected for that reason.
 - Limitation: run so far only on synthetic data (`docs/data-fit.md`). The 20-event rule and the four-vintage class average are judgment calls, both settings in `FitSettings`.
 
@@ -322,6 +323,17 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 ---
 
+## 13. The real-data path
+
+**M40. Synthetic records carry markers, and anything read with a marker is labelled SYNTHETIC, whatever folder it came from.**
+- What: the simulator writes seller name "SYNTHETIC" and property state "ZZ" on every loan (M17). `loans.synthetic_records` counts origination records with either marker. `reserve prepare` writes `prepare.json` next to the interim tables with the source, the number of marked records, the loan count, and the raw file names and sizes; `reserve run` labels a result `"synthetic": true` when the config is synthetic or the manifest found any marked record, and refuses to run on tables without a manifest. `scripts/check_data_fit.py` labels its report the same way.
+- Why: the dress rehearsal of the real-data path (M41) runs the owner's exact commands on simulator files placed in a `freddie` folder. Before this change those runs printed no SYNTHETIC label and wrote `"synthetic": false`, because the label came only from the config's `data.source`. A fake number that looks real is the most damaging mistake this project can make (CLAUDE.md rule 10), so the label now follows the data, not the folder.
+- Considered: labelling by folder or file name (fails when fake files are copied into `data/raw/freddie`); a separate marker file written by the simulator (lost when files are copied one by one). Markers inside every record travel with the data.
+- Why "any" record and not "all": a folder that mixes real and fake files must not produce an unlabelled result.
+- Limitation: only the markers this simulator writes are detected. Fake files made by another tool without them would pass as real; only Freddie Mac's own download is real data.
+
+---
+
 ## Limitations register
 
 The honest list. Each item says what could be wrong and what was done about it.
@@ -358,3 +370,4 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L28 | Drift thresholds are judgment calls and outcomes arrive 12 months late | The monitor can alarm too easily or too late | Thresholds are named constants, tested on synthetic drift with a known start; tuning with a risk team listed as next work (M36) |
 | L29 | The agent has never called the real API; cassettes are hand-written | The live request shape is unverified, and model behaviour is unknown | Interface and cassettes as in Tells; `--record` records a real cassette once a key exists (M37) |
 | L30 | Critic label checks are keyword checks | A careless sentence can pass them | Combined with structural checks (split order, lock, correction, claim direction); a person reviews every pack (M38) |
+| L31 | Synthetic detection relies on the simulator's own markers | Fake files from another tool, without the markers, would be treated as real | Only Freddie Mac's download goes in `data/raw/freddie`; every result records the raw file names and sizes in `prepare.json` (M40) |

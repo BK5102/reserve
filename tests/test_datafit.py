@@ -119,6 +119,22 @@ def test_script_runs_on_a_synthetic_config(tmp_path, capsys):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     out = tmp_path / "fit.json"
-    assert mod.main(["synthetic", str(cfg), "--out", str(out)]) == 0
+    # 40 loans per quarter cannot reach 20 events by age 12, so the gate fails: exit 3.
+    assert mod.main(["synthetic", str(cfg), "--out", str(out)]) == 3
     assert json.loads(out.read_text())["synthetic"] is True
-    assert "SYNTHETIC DATA" in capsys.readouterr().out
+    printed = capsys.readouterr().out
+    assert "SYNTHETIC DATA" in printed and "GATE FAILED" in printed
+
+
+def test_simulator_files_in_a_freddie_folder_are_labelled_synthetic(tmp_path):
+    """Synthetic files read through the real-data path must still say SYNTHETIC (M40)."""
+    sim = synthetic.simulate(
+        synthetic.SimConfig(
+            first_vintage="2005Q1", n_vintages=4, loans_per_vintage=30, data_end="2008-12", seed=3
+        )
+    )
+    synthetic.write(sim, tmp_path)
+    orig, perf, files = datafit.load_freddie(tmp_path / "freddie")
+    rep = datafit.check(orig, perf, f"freddie:{tmp_path}", file_report=files)
+    assert rep["synthetic"] is True and rep["synthetic_records"] == 120
+    assert datafit.to_markdown(rep).startswith("SYNTHETIC DATA")

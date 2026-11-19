@@ -141,3 +141,13 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** letting the agent write the pack, or decide on its own to spend the sealed test. Both rejected: numbers come from files, and spending the test is a person's decision, behind a flag and a committed lock.
 - **Cause and effect:** the tests replay hand-written model conversations, so the whole loop runs with no API key and no cost. They show the agent being refused when it asks for a file or the test period, the critic failing an answer that types a number or claims a win the statistics do not support, and the challenger's objections being rejected unless each points to a value that exists in a results file. No live model call has been made yet.
 - **How to say it:** "The agent can only use four tools, a referee checks its answer with fixed rules before a second model argues against it, and every number in the final report is inserted by code from the result files."
+
+## Part 8. Getting ready for real data
+
+### Step 15. Label fake data by what is in it, not where it sits
+
+- **What I did:** made every loan the simulator writes carry two markers (seller "SYNTHETIC", state "ZZ"), and made the pipeline and the data-fit script label any result SYNTHETIC if a single record carries one, even when the files sit in the real-data folder.
+- **Why:** before the real files arrive, I rehearse the owner's exact commands on fake files placed where the real ones will go. The first rehearsal printed a normal-looking result with no SYNTHETIC label, because the label came from the config's name for the data source, not from the data.
+- **What else I considered:** labelling by folder or file name. Rejected: copying fake files into the real folder would defeat it.
+- **Cause and effect:** a fake number can no longer look real by accident. The data-fit script also now stops with a non-zero exit code when the gate fails, so the go/no-go step is a command, not a line someone has to notice.
+- **How to say it:** "My rehearsal caught that fake data in the real folder produced unlabelled results, so now the label travels inside every record and nothing built from them can lose it."

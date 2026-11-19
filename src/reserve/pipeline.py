@@ -30,20 +30,35 @@ from reserve.models.tsfm import TSFMContestant, make_forecaster
 from reserve.stress import scenarios
 
 INTERIM_FILES = ("curves.parquet", "loans.parquet")
+# Written by `prepare` next to the tables: what was read and whether it was synthetic (M40).
+MANIFEST = "prepare.json"
 
 
-def _read_freddie(raw_dir: Path) -> tuple[pl.DataFrame, pl.DataFrame]:
+def _read_freddie(raw_dir: Path) -> tuple[pl.DataFrame, pl.DataFrame, list[Path]]:
     files = loans.find_sample_files(raw_dir)
     if not files:
         raise FileNotFoundError(
-            f"no sample_orig_YYYY.txt / sample_perf_YYYY.txt pairs in {raw_dir}; see README, "
-            "'Manual steps'"
+            f"no sample_orig_YYYY.txt / sample_perf_YYYY.txt pairs in {raw_dir}; see "
+            "docs/runbook.md, step 1"
         )
-    orig = pl.concat(
-        [loans.read_origination(o, columns=("first_payment_date",)) for _, o, _ in files]
-    )
+    cols = ("first_payment_date", *loans.MARKER_COLUMNS)
+    orig = pl.concat([loans.read_origination(o, columns=cols) for _, o, _ in files])
     perf = pl.concat([loans.read_performance(p) for _, _, p in files], how="diagonal")
-    return orig, perf
+    return orig, perf, [p for _, o, pf in files for p in (o, pf)]
+
+
+def read_manifest(cfg: dict[str, Any]) -> dict[str, Any]:
+    path = Path(cfg["data"]["interim_dir"]) / MANIFEST
+    if not path.exists():
+        raise FileNotFoundError(f"{path} missing; run `reserve prepare` again (M40)")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def is_synthetic(cfg: dict[str, Any]) -> bool:
+    """True for a synthetic config, or for any data whose records carry synthetic markers."""
+    if cfg["data"]["source"] == "synthetic":
+        return True
+    return bool(read_manifest(cfg)["synthetic"])
 
 
 def prepare(cfg: dict[str, Any]) -> dict[str, str]:
@@ -56,10 +71,10 @@ def prepare(cfg: dict[str, Any]) -> dict[str, str]:
         sim = synthetic.simulate(synthetic.SimConfig(**data["synthetic"]))
         raw = Path(data.get("raw_dir", f"data/synthetic/{cfg['name']}"))
         synthetic.write(sim, raw)
-        orig, perf = _read_freddie(raw / "freddie")
+        orig, perf, raw_files = _read_freddie(raw / "freddie")
         observations = macro.load_observations(raw / "fred")
     else:
-        orig, perf = _read_freddie(Path(data["raw_dir"]))
+        orig, perf, raw_files = _read_freddie(Path(data["raw_dir"]))
         fred_dir = data.get("fred_dir")
         if fred_dir and all((Path(fred_dir) / f"{s}.parquet").exists() for s in macro.SERIES):
             observations = macro.load_observations(fred_dir)
@@ -71,6 +86,17 @@ def prepare(cfg: dict[str, Any]) -> dict[str, str]:
         periods = sorted(built.curves["period"].unique().to_list())
         feats = macro.macro_features(observations, periods, mode=mode)
         feats.write_parquet(interim / "macro_features.parquet")
+    n_marked = loans.synthetic_records(orig)
+    manifest = {
+        "source": data["source"],
+        "synthetic": data["source"] == "synthetic" or n_marked > 0,
+        "synthetic_records": n_marked,
+        "n_loans": orig.height,
+        "raw_files": [{"name": p.name, "bytes": p.stat().st_size} for p in raw_files],
+        "macro_tables": observations is not None,
+        "prepared_utc": datetime.now(UTC).isoformat(),
+    }
+    (interim / MANIFEST).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     written = sorted(p.name for p in interim.glob("*.parquet"))
     return {name: provenance.file_sha256(interim / name) for name in written}
 
@@ -151,6 +177,7 @@ def run(
                 f"{period!r}"
             )
     curves, feats, files = load_prepared(cfg)
+    synthetic_data = is_synthetic(cfg)
     first, last = cfgmod.origin_window(cfg, period)
     os_ = origins.monthly_origins(first, last, int(ev["step_months"]), int(ev["horizon"]))
     contestants = build_contestants(cfg, feats)
@@ -219,7 +246,7 @@ def run(
             "role": {"dev": "development", "test": "sealed test", "recession": "descriptive"}[
                 period
             ],
-            "synthetic": cfg["data"]["source"] == "synthetic",
+            "synthetic": synthetic_data,
             "macro_mode": cfg.get("macro", {}).get("mode", "asof"),
             "macro_revisions_ignored": revisions,
             "sealed": sealed,

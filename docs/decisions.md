@@ -80,6 +80,12 @@ Baseline, adverse, and severe what-if paths for unemployment and house prices fe
 
 `reserve agent "question"` lets Claude Opus 5.5 plan and call four tools (run an experiment, load results, chart data, statistics at another horizon), cannot score the test period unless a person passes `--allow-test` and a lock is committed, and hands its answer to a critic that checks numbers, labels, split order, the lock, the correction, and claim directions before a second pass lists three objections per claim, each pointing to a value in a results file. The reporter then writes an eight-section evidence pack, labelled "inspired by validation practice, not a compliance document", with every number inserted by code. Analogy: an intern who may use four named instruments, whose lab report is checked by a referee and argued against by a rival, with the numbers copied in by the machine rather than typed by hand.
 
+## Getting ready for real data (2026-11-18)
+
+### D18. The SYNTHETIC label follows the data, not the folder
+
+A dress rehearsal of the real-data commands on simulator files in the Freddie Mac layout showed that those runs carried no SYNTHETIC label, because the label came from the config. Now every simulated record carries markers, `reserve prepare` writes a manifest saying whether any record is marked, and every run and data-fit report built from marked records is labelled SYNTHETIC. Analogy: a practice exam paper is stamped PRACTICE on every page, not only on the folder it came in.
+
 ## Where things stand
 
 Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model and a real Chronos-Bolt-tiny adapter (run end to end on synthetic data), Chronos-2 and TimesFM 2.5 stubs, the harness, scoring, configs, the sealed test guard, the thin-history experiment, hypothetical macro scenarios, the drift monitor, and the agent (tools, runner, critic, reporter) on hand-written cassettes. Blocked on the owner: Freddie Mac registration and download, a FRED API key, and an Anthropic API key for a live agent run. Not started: TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, and slice analysis.

@@ -55,7 +55,9 @@ def load_freddie(raw_dir: str | Path) -> tuple[pl.DataFrame, pl.DataFrame, list[
         )
     origs, perfs, report = [], [], []
     for year, o, p in files:
-        orig = loans_io.read_origination(o, columns=("first_payment_date",))
+        orig = loans_io.read_origination(
+            o, columns=("first_payment_date", *loans_io.MARKER_COLUMNS)
+        )
         perf = loans_io.read_performance(p)
         report.append(
             {
@@ -227,6 +229,8 @@ def check(
     macro_observations: dict[str, pl.DataFrame] | None = None,
 ) -> dict:
     s = settings or FitSettings()
+    marked = [c for c in loans_io.MARKER_COLUMNS if c in orig.columns]
+    n_marked = loans_io.synthetic_records(orig) if marked else 0
     data = vintages.build(orig, perf)
     curves = data.curves
     counts = vintages.reconcile(
@@ -259,7 +263,10 @@ def check(
     )
     report = {
         "data_source": data_source,
-        "synthetic": data_source.startswith("synthetic"),
+        # Synthetic if it came from the simulator, or if any record carries its markers,
+        # even when read from a "freddie" folder (M40).
+        "synthetic": data_source.startswith("synthetic") or n_marked > 0,
+        "synthetic_records": n_marked,
         "settings": {k: v for k, v in s.__dict__.items()},
         "files": file_report or [],
         "latest": {

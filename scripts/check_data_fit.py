@@ -5,6 +5,11 @@ Usage:
     uv run python scripts/check_data_fit.py synthetic configs/synthetic_fit.yaml [--out ...]
 
 The synthetic mode only proves the checks work. Its numbers are not real-data results.
+Files read from a "freddie" folder are also labelled SYNTHETIC if their records carry the
+simulator's markers (methodology M40).
+
+Exit code: 0 if the data-fit gate passes, 3 if it fails (the go/no-go step in
+docs/runbook.md), 1 on an error.
 """
 
 from __future__ import annotations
@@ -50,6 +55,9 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
         print(f"\nfull report: {args.out}")
+    if not report["gate"]["passes"]:
+        print("\nGATE FAILED: stop before any model run (docs/runbook.md, step 3).")
+        return 3
     return 0
 
 
