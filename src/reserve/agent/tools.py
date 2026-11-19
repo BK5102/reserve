@@ -67,7 +67,19 @@ class Toolbox:
         return ["dev", "recession", "test"] if self.allow_test else ["dev", "recession"]
 
     def config_names(self) -> list[str]:
-        return sorted(p.stem for p in self.configs_dir.glob("*.yaml"))
+        """Experiment configs only: files with an `evaluation` block. Settings files such as
+        configs/agent.yaml (the spend cap) and configs/synthetic_fit.yaml are never offered."""
+        import yaml
+
+        names = []
+        for p in sorted(self.configs_dir.glob("*.yaml")):
+            try:
+                raw = yaml.safe_load(p.read_text(encoding="utf-8"))
+            except yaml.YAMLError:
+                continue
+            if isinstance(raw, dict) and "evaluation" in raw:
+                names.append(p.stem)
+        return names
 
     # ----- allow-list -----
     def specs(self) -> list[dict[str, Any]]:

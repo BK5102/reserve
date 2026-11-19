@@ -102,6 +102,10 @@ The Chronos-2 adapter now loads the pinned model, checks it reports its 21 train
 
 TimesFM 2.5 now installs as the optional `timesfm` extra from Google's GitHub repo at a pinned commit (the one tagged v3.0.2), was verified in a separate scratch environment first (the class exists, the output layout is as documented, and it runs on a laptop CPU), and passes its tests there; without the extra its model tests skip. It is the slowest model by far, about half a second per vintage forecast on a laptop CPU, and two parts of its training data postdate the test period, which any result must say. Analogy: a third runner who arrives by a different road, checked at the gate before being given a lane, and timed on the practice course first.
 
+### D23. A hard spend cap and a record mode for the agent
+
+Every live call of `reserve agent` now passes a cap from `configs/agent.yaml` (10 dollars per run): before each call the code works out the most that call could cost, including a possible fallback to a more expensive model, lowers the call's output limit to fit, and stops instead of passing the cap. `--record` saves the live conversation as a new cassette that can be replayed for free, and a live run refuses to start without `ANTHROPIC_API_KEY` in the environment. Analogy: a prepaid card that declines the purchase before it happens, rather than a statement that arrives after.
+
 ## Where things stand
 
 Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check, three classical contestants, the TSFM interface with a fake model and a real Chronos-Bolt-tiny adapter (run end to end on synthetic data), Chronos-2 and TimesFM 2.5 stubs, the harness, scoring, configs, the sealed test guard, the thin-history experiment, hypothetical macro scenarios, the drift monitor, and the agent (tools, runner, critic, reporter) on hand-written cassettes. Blocked on the owner: Freddie Mac registration and download, a FRED API key, and an Anthropic API key for a live agent run. Not started: TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, and slice analysis.

@@ -1,0 +1,22 @@
+# Settings for live agent runs (`reserve agent`), methodology M37 and M45.
+# The spend cap is enforced in code (src/reserve/agent/spend.py): before each call the
+# worst case is checked against what is left, and the run stops instead of passing it.
+# Replayed cassettes (`--cassette`) never call the API and cost nothing.
+model: claude-opus-5-5
+effort: high
+max_tokens: 16000        # per call; lowered automatically when less budget is left
+max_tool_calls: 10
+max_turns: 12
+spend_cap_usd: 10.00     # hard stop for one `reserve agent` run, in US dollars
+
+# US dollars per million tokens. Source: the Claude API reference bundled with Claude Code
+# (model table cached 2026-11-03): Claude Opus 5.5 input 4.00, output 20.00, cache reads
+# 0.20; cache writes 1.25 times input for the 5-minute cache. Check the current price list
+# before a live run and edit here; a change here does not touch any sealed config.
+prices_usd_per_mtok:
+  claude-opus-5-5: {input: 4.00, output: 20.00, cache_write: 5.00, cache_read: 0.20}
+
+# Any model not listed above, such as a server-side fallback model, is charged at this
+# rate. It is the highest listed price in the same reference (Claude Fable 5.1: input
+# 10.00, output 50.00), so the cap errs on the safe side.
+unlisted_model_prices: {input: 10.00, output: 50.00, cache_write: 12.50, cache_read: 1.00}

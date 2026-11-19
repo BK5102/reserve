@@ -9,7 +9,8 @@ dict: {"stop_reason": ..., "content": [block dicts]}. Three backends, as in Tell
   environment, and the key is never written to disk.
 - `CassetteLLM` in "replay" mode: returns recorded responses in order and checks each
   request matches the recording, so a changed prompt fails loudly.
-- `CassetteLLM` in "record" mode: wraps a real backend and saves every exchange.
+- `CassetteLLM` in "record" mode: wraps a real backend and saves every exchange. The CLI
+  puts the spend cap (`spend.BudgetedLLM`) between it and the API (M45).
 
 No test calls the real API.
 """
@@ -79,7 +80,13 @@ class AnthropicLLM:
         out = response.to_dict()
         if out.get("stop_reason") == "refusal":
             raise AgentRefusedError(str(out.get("stop_details")))
-        return {"stop_reason": out["stop_reason"], "content": out["content"], "model": out["model"]}
+        # Usage is kept so the spend cap can charge each call and cassettes record cost.
+        return {
+            "stop_reason": out["stop_reason"],
+            "content": out["content"],
+            "model": out["model"],
+            "usage": out.get("usage"),
+        }
 
 
 class CassetteLLM:

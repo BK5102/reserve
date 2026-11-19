@@ -3,6 +3,7 @@
 reserve prepare synthetic --config configs/synthetic_small.yaml
 reserve prepare freddie --config configs/freddie_sample.yaml
 reserve doctor --config configs/freddie_test.yaml                    # is everything in place?
+reserve summary artifacts/runs/<run id>                             # headline table, from the file
 reserve prepare macro [--out data/raw/fred] [--latest] [--record cassette.json]
 reserve prepare macro --cassette tests/fixtures/fred/cassette.json   # replay, no key, no network
 reserve run configs/synthetic_small.yaml
@@ -12,7 +13,8 @@ reserve run configs/synthetic_small.yaml --experiment scenarios      # HYPOTHETI
 reserve checksums --config configs/freddie_test.yaml                # -> data/checksums.sha256
 reserve seal configs/freddie_test.yaml --note "plan for the 2013-2018 test"
 reserve monitor artifacts/runs/<run id> --contestant B_age_curve --reference-end 2008-12
-reserve agent "do TSFMs help when history is only 12 months?" [--cassette c.json] [--allow-test]
+reserve agent "do TSFMs help when history is only 12 months?" [--record] [--allow-test]
+reserve agent "..." --cassette artifacts/agent/cassettes/<time>.json   # replay, no API call
 """
 
 from __future__ import annotations
@@ -120,6 +122,14 @@ def _seal(args: argparse.Namespace) -> int:
     return 0
 
 
+def _summary(args: argparse.Namespace) -> int:
+    from reserve import summary
+
+    result = json.loads((Path(args.run_dir) / "results.json").read_text(encoding="utf-8"))
+    print(summary.headline_markdown(result))
+    return 0
+
+
 def _doctor(args: argparse.Namespace) -> int:
     from reserve import doctor
 
@@ -169,27 +179,68 @@ def _monitor(args: argparse.Namespace) -> int:
 
 
 def _agent(args: argparse.Namespace) -> int:
+    import os
     from datetime import UTC, datetime
 
-    from reserve.agent import critic, llm, reporter, runner, tools
+    from reserve.agent import critic, llm, reporter, runner, spend, tools
 
-    if args.cassette:
+    stamp = f"{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
+    if args.cassette and args.record is not None:
+        print("--cassette replays and --record records; pass one", file=sys.stderr)
+        return 2
+    tracker = None
+    if args.cassette:  # replay: no API call, no cost
         model = llm.CassetteLLM(args.cassette)
+        max_calls, max_turns = args.max_tool_calls or 10, 12
     else:
-        try:
-            backend = llm.AnthropicLLM()  # the SDK reads ANTHROPIC_API_KEY
-        except ImportError as err:
-            print(f"error: {err}", file=sys.stderr)
+        if not os.environ.get("ANTHROPIC_API_KEY", "").strip():
+            print(
+                "error: a live agent run needs ANTHROPIC_API_KEY in the environment (never in a "
+                "file); use --cassette FILE to replay a recorded run",
+                file=sys.stderr,
+            )
             return 1
-        model = llm.CassetteLLM(args.record, "record", backend) if args.record else backend
-    box = tools.Toolbox(allow_test=args.allow_test)
-    result = runner.run_agent(args.question, box, model, max_tool_calls=args.max_tool_calls)
-    review = critic.review(result.final_text, box)
-    challenge = critic.challenge(result.final_text, box, model, review)
-    pack = reporter.build_pack(result, review, challenge, box)
-    out = Path(args.out or f"artifacts/agent/{datetime.now(UTC):%Y%m%dT%H%M%SZ}_pack.md")
+        record = None
+        if args.record is not None:
+            record = Path(args.record or f"artifacts/agent/cassettes/{stamp}.json")
+            if record.exists():
+                print(f"error: {record} exists; cassettes are never overwritten", file=sys.stderr)
+                return 1
+        settings = spend.load_settings(args.agent_config)
+        backend = llm.AnthropicLLM(settings.model, settings.effort, settings.max_tokens)
+        tracker = spend.SpendTracker(settings)
+        model = spend.BudgetedLLM(backend, tracker)  # every live call passes the spend cap
+        if record:
+            model = llm.CassetteLLM(record, "record", model)
+            print(f"recording to {record}")
+        max_calls = args.max_tool_calls or settings.max_tool_calls
+        max_turns = settings.max_turns
+    out = Path(args.out or f"artifacts/agent/{stamp}_pack.md")
     out.parent.mkdir(parents=True, exist_ok=True)
+
+    def save_spend() -> None:
+        if tracker is not None:
+            path = out.with_name(out.stem + "_spend.json")
+            path.write_text(json.dumps(tracker.summary(), indent=2), encoding="utf-8")
+            print(
+                f"spend: about ${tracker.spent_usd:.2f} of the "
+                f"${tracker.settings.spend_cap_usd:.2f} cap (estimated from usage; {path})"
+            )
+
+    box = tools.Toolbox(allow_test=args.allow_test)
+    try:
+        result = runner.run_agent(
+            args.question, box, model, max_tool_calls=max_calls, max_turns=max_turns
+        )
+        review = critic.review(result.final_text, box)
+        challenge = critic.challenge(result.final_text, box, model, review)
+    except spend.SpendCapReached as err:
+        print(f"stopped: {err}. No evidence pack was written.", file=sys.stderr)
+        save_spend()
+        return 4
+    pack = reporter.build_pack(result, review, challenge, box)
     out.write_text(pack, encoding="utf-8")
+    save_spend()
     print(
         f"critic: {'passed' if review.passed else 'FAILED'}; challenge: "
         f"{'passed' if challenge.passed else 'FAILED'}"
@@ -233,6 +284,9 @@ def main(argv: list[str] | None = None) -> int:
         "real data)",
     )
     s.set_defaults(func=_seal)
+    u = sub.add_parser("summary", help="headline table of a run, from its results file")
+    u.add_argument("run_dir")
+    u.set_defaults(func=_summary)
     d = sub.add_parser("doctor", help="check downloads, keys, extras, and git before a step")
     d.add_argument("--config", default="configs/freddie_test.yaml")
     d.set_defaults(func=_doctor)
@@ -249,9 +303,20 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("question")
     a.add_argument("--allow-test", action="store_true", help="offer the sealed test period")
     a.add_argument("--cassette", help="replay a recorded model conversation (no API call)")
-    a.add_argument("--record", help="record the live conversation to this cassette file")
+    a.add_argument(
+        "--record",
+        nargs="?",
+        const="",
+        help="live run only: save every exchange to a new cassette (default "
+        "artifacts/agent/cassettes/<time>.json); needs ANTHROPIC_API_KEY",
+    )
     a.add_argument("--out", help="where to write the evidence pack")
-    a.add_argument("--max-tool-calls", type=int, default=10)
+    a.add_argument(
+        "--agent-config",
+        default="configs/agent.yaml",
+        help="model, budgets, and the hard spend cap for live runs",
+    )
+    a.add_argument("--max-tool-calls", type=int, help="default: the agent config's value, or 10")
     a.set_defaults(func=_agent)
     args = ap.parse_args(argv)
     try:

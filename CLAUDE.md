@@ -64,7 +64,8 @@ uv run reserve seal configs/freddie_test.yaml   # refuses until real data is che
 uv run reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only: 6, 12, 24 months of history
 uv run reserve run configs/synthetic_small.yaml --experiment scenarios      # dev only: hypothetical macro paths, never scored
 uv run reserve monitor artifacts/runs/<run> --contestant <name> --reference-end <date>   # drift lights for a finished run
-uv sync --extra agent && uv run reserve agent "do TSFMs help when history is only 12 months?"   # needs ANTHROPIC_API_KEY
+uv sync --extra agent && uv run reserve agent "do TSFMs help when history is only 12 months?" --record   # needs ANTHROPIC_API_KEY; capped by configs/agent.yaml
+uv run reserve agent "..." --cassette artifacts/agent/cassettes/<time>.json   # replay a recorded run, no API call
 ```
 
 If a command above does not exist yet, create it as part of the day's task and update this file.
