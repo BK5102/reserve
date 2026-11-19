@@ -88,7 +88,7 @@ The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tr
 
 ## Not built yet
 
-A real run of the third TSFM (TimesFM 2.5 is a stub), TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, slice analysis, and any live agent run (PLAN.md Part 6).
+TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, slice analysis, and any live agent run (PLAN.md Part 6).
 
 ## Related projects
 

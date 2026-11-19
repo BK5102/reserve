@@ -19,6 +19,13 @@ tsfm = [
     "torch>=2.6",
     "chronos-forecasting>=2.3",
 ]
+# TimesFM 2.5 (Google), installed from the official google-research/timesfm GitHub repo at
+# a pinned commit (see [tool.uv.sources]); not in the default install or the tsfm extra.
+# Install with `uv sync --extra tsfm --extra timesfm` (methodology M44).
+timesfm = [
+    "torch>=2.6",
+    "timesfm[torch]",
+]
 # The experiment agent (Claude API). Optional: tests replay cassettes and never call the
 # API; install with `uv sync --extra agent` and set ANTHROPIC_API_KEY for a live run.
 agent = [
@@ -45,6 +52,8 @@ packages = ["src/reserve"]
 # The shared Cleanroom, pinned to a release tag of the Tells repo. Bump on purpose only.
 cleanroom = { git = "https://github.com/BK5102/tells", tag = "cleanroom-v0.2", subdirectory = "packages/cleanroom" }
 torch = [{ index = "pytorch-cpu" }]
+# TimesFM 2.5: the commit tagged v3.0.2 in the official repo, checked 2026-11-19 (M44).
+timesfm = { git = "https://github.com/google-research/timesfm", rev = "8cb0628371af142e16b8c232cc9fbf667ffb12f9" }
 
 # CPU-only PyTorch wheels: much smaller, and the project is CPU only (methodology M3).
 [[tool.uv.index]]

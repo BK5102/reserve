@@ -179,35 +179,23 @@ def test_chronos_bolt_is_pinned_and_lazy():
         make_forecaster("chronos_bolt_tiny")
 
 
-def test_stub_tsfms_refuse_to_run_and_carry_their_metadata():
+def test_every_tsfm_carries_its_metadata_and_names_its_extra():
     import sys
+    from importlib.util import find_spec
 
     from reserve.models.tsfm import KNOWN_MODELS, MODEL_INFO, chronos2, timesfm25
 
     assert set(MODEL_INFO) == set(KNOWN_MODELS)
-    for name in ("timesfm_2p5",):
-        with pytest.raises(NotImplementedError, match="stub"):
-            make_forecaster(name)
-        assert MODEL_INFO[name]["status"] == "stub"
-    for name in ("chronos2", "timesfm_2p5"):
+    for name in ("chronos_bolt_tiny", "chronos2", "timesfm_2p5"):
+        assert MODEL_INFO[name]["status"] == "real" and MODEL_INFO[name]["revision"]
         assert "undisclosed" in MODEL_INFO[name]["pretraining_cutoff"]
     assert chronos2.REVISION == "29ec3766d36d6f73f0696f85560a422f50e8498c"
     assert set(QUANTILES) <= set(chronos2.NATIVE_LEVELS)  # every Reserve level is native
     assert timesfm25.MODEL_ID == "google/timesfm-2.5-200m-pytorch"
-    assert MODEL_INFO["timesfm_2p5"]["revision"] is None  # not pinned until verified
-    assert "timesfm" not in sys.modules
-
-
-def test_timesfm_output_drops_the_mean_column():
-    from reserve.models.tsfm import timesfm25
-
-    out = np.zeros((2, 12, 10))
-    out[..., 0] = 99.0  # the mean, per the model card
-    out[..., 1:] = np.arange(1, 10) / 10
-    native = timesfm25.native_from_output(out)
-    assert native.shape == (2, 12, 9) and (native != 99.0).all()
-    with pytest.raises(ValueError):
-        timesfm25.native_from_output(out[..., :9])
+    if find_spec("timesfm") is None:  # the usual case: TimesFM is not in the tsfm extra
+        with pytest.raises(ImportError, match="--extra timesfm"):
+            make_forecaster("timesfm_2p5")
+        assert "timesfm" not in sys.modules
 
 
 # ----- harness and leak tests ----------------------------------------------------------

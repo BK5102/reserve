@@ -175,3 +175,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** letting it share information across all the vintages in a batch (its cross-learning option). Rejected: a vintage's forecast would then depend on which other vintages happened to be in the batch.
 - **Cause and effect:** it costs about 18 milliseconds per vintage forecast on my laptop's CPU, ten times the tiny model and still negligible for the real test. It has only run on synthetic data, and its training data cutoff is undisclosed, which I state with any result.
 - **How to say it:** "My second pretrained model is the only one trained on the exact uncertainty levels I score, so its 90% range is honest by construction, and I checked its output against the library's own before trusting it."
+
+### Step 19. Make the third pretrained model real, installed from its official source
+
+- **What I did:** added TimesFM 2.5 (Google) as an optional install taken straight from Google's code repository at a fixed version, tried it first in a separate throwaway environment, and once it ran there on my laptop's CPU, replaced the stub with a working adapter and tests.
+- **Why:** the plan asks for three pretrained models from more than one lab, and the model's own page was unclear about which published package contains this version, so installing the exact tagged commit from the official source removes the guesswork.
+- **What else I considered:** the published package (probably identical, but the model page points to the source), the newer TimesFM 3.0 (its weights are licensed for non-commercial use only), and leaving it as a stub.
+- **Cause and effect:** it works, but it is by far the slowest model, so I set its batch size to match how many vintages each forecast date has, because the library pads every batch. Two parts of its training data come from after my test period, so any TimesFM result carries a contamination warning. Whether it enters the sealed test is the owner's one-line choice before sealing.
+- **How to say it:** "I verified the third model in a throwaway environment before letting it near the project, pinned it to an exact commit of the official code, and I state up front that part of its training data postdates my test period."

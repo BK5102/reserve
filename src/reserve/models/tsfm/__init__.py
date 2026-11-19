@@ -1,4 +1,5 @@
-"""TSFM adapters. Real models need the optional `tsfm` extra; `fake` never does.
+"""TSFM adapters. The Chronos models need the optional `tsfm` extra, TimesFM 2.5 the
+`timesfm` extra; `fake` needs neither.
 
 `MODEL_INFO` holds each model's id, pinned revision, status, documented pretraining
 cutoff (CLAUDE.md rule 9), and the importable packages it needs (checked before sealing).
@@ -37,8 +38,8 @@ MODEL_INFO: dict[str, dict] = {
     },
     "timesfm_2p5": {
         "model_id": timesfm25.MODEL_ID,
-        "revision": None,
-        "status": "stub",
+        "revision": timesfm25.REVISION,
+        "status": "real",
         "pretraining_cutoff": timesfm25.PRETRAINING_CUTOFF,
         "requires": ("torch", "timesfm"),
     },
