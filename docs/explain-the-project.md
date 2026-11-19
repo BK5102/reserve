@@ -12,7 +12,7 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 
 ## Elevator pitch (draft, no results yet)
 
-"Lenders watch each quarter's batch of loans, called a vintage, the way a school tracks a graduating class: what share has ever gone seriously late by each month of age. I am testing whether a pretrained time series model forecasts the next year of those curves better than the methods lenders use, with honest uncertainty ranges, on public Freddie Mac mortgage data. The pipeline, the classical baselines, and the honesty checks are built and tested against a simulator with known answers; the real-data check is waiting on a free data registration, and I have no result to claim yet."
+"Lenders watch each quarter's batch of loans, called a vintage, the way a school tracks a graduating class: what share has ever gone seriously late by each month of age. I am testing whether a pretrained time series model forecasts the next year of those curves better than the methods lenders use, with honest uncertainty ranges, on public Freddie Mac mortgage data. The pipeline, the classical baselines, three pretrained models, and the honesty checks are built and tested against a simulator with known answers, and every real-data command has been rehearsed end to end; the real run is waiting on the data download, and I have no result to claim yet."
 
 ---
 
@@ -191,3 +191,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** counting tokens exactly with an extra request before each call (more calls for little gain; my estimate deliberately overcounts), and ignoring the fallback model (it can cost more than the main one, so I price it at the highest listed rate).
 - **Cause and effect:** the first live run will produce a real recording, replacing my hand-written test conversations as the evidence that the request shape is right. The spend figure is an estimate from listed prices, so the account's own limit stays as a second guard. No live call has been made yet.
 - **How to say it:** "My agent cannot overspend: before every call it prices the worst case, including a fallback to a pricier model, and stops before the cap rather than after it, and its first live run is recorded so every later test replays it for free."
+
+### Step 21. Write the runbook for the real run
+
+- **What I did:** wrote `docs/runbook.md`, the exact commands in order from "the data is downloaded" to "the sealed result is written up": check the download, the data-fit gate, the macro download, development runs, the rule that picks the reference baseline, checksums, sealing, committing the lock, the one sealed run, a summary table printed from the results file, the agent's evidence pack, and the findings.
+- **Why:** the real run happens once and cannot be redone quietly, so every step, and what each step must print, is written down and rehearsed in advance.
+- **What else I considered:** leaving the steps scattered across the README and the docs, which is how the dead-end sealing instruction survived until the rehearsal.
+- **Cause and effect:** writing it found one more fault: the rule meant to let small result files be committed never worked, so the sealed results could not have been kept in the repo; it is fixed. I also added `reserve summary`, which prints the headline table from a results file with its run id and config hash, so the findings can quote numbers without retyping them.
+- **How to say it:** "The real run is a checklist I rehearsed in CI before the data existed, so on the day it is a sequence of commands, not a series of decisions."

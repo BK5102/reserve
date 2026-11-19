@@ -2,7 +2,7 @@
 data/raw/
 data/interim/
 data/synthetic/
-artifacts/
+artifacts/*
 !artifacts/samples/
 
 # Secrets (API keys live in environment variables only)

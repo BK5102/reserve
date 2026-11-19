@@ -6,9 +6,9 @@ The checks are in `scripts/check_data_fit.py` (logic in `src/reserve/datafit.py`
 
 ## Status
 
-**Real-data numbers: PENDING.** The owner has not yet registered for the Freddie Mac Single-Family Loan-Level Dataset or obtained a FRED API key, so no real file has been read. Every number in the "Synthetic run" section below comes from fake data and says nothing about Freddie Mac loans.
+**Real-data numbers: PENDING.** The Freddie Mac files have not been downloaded and no FRED API key is set yet, so no real file has been read. The commands are rehearsed on synthetic files in CI (methodology M41). Every number in the "Synthetic run" section below comes from fake data and says nothing about Freddie Mac loans.
 
-To fill in the real numbers (see README, "Manual steps"):
+To fill in the real numbers (`docs/runbook.md`, steps 2 to 4; the script exits 3 when the gate fails):
 
 ```
 uv run python scripts/check_data_fit.py freddie data/raw/freddie --fred data/raw/fred --out artifacts/data_fit_freddie.json

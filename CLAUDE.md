@@ -32,21 +32,21 @@ reserve/
     evaluation/  origins.py  harness.py  scoring.py (Cleanroom splits and forecast scores)
     stress/      scenarios.py
     monitoring/  drift.py
-    agent/       planner.py  runner.py  critic.py  reporter.py  tools.py
-    datafit.py  pipeline.py  config.py  cli.py
+    agent/       planner.py  runner.py  critic.py  reporter.py  tools.py  llm.py  spend.py
+    datafit.py  pipeline.py  config.py  cli.py  doctor.py  checksums.py  summary.py
   tests/
   configs/
-  docs/          tsfm-notes.md  decisions.md  findings.md
+  docs/          runbook.md  methodology.md  explain-the-project.md  tsfm-notes.md  decisions.md  data-fit.md  findings.md
   data/          gitignored. Download scripts and checksums only.
   artifacts/     gitignored except small sample outputs
 ```
 
-The testing toolkit comes from the shared `cleanroom` package (split, lock, metrics, bootstrap, multiple-comparison correction, canary), built in the sibling project Tells under `packages/cleanroom` and installed here from a git tag: `uv add "cleanroom @ git+https://github.com/BK5102/tells@cleanroom-v0.1#subdirectory=packages/cleanroom"`. Import it. Do not copy it. If something is missing, add it to `cleanroom` in the Tells repo in a domain-neutral way, release a new `cleanroom-vX.Y` tag, then bump the version here.
+The testing toolkit comes from the shared `cleanroom` package (split, lock, metrics, bootstrap, multiple-comparison correction, canary), built in the sibling project Tells under `packages/cleanroom` and installed here from a git tag (currently `cleanroom-v0.2`, pinned in `pyproject.toml` under `[tool.uv.sources]`). Import it. Do not copy it. If something is missing, add it to `cleanroom` in the Tells repo in a domain-neutral way, release a new `cleanroom-vX.Y` tag, then bump the version here.
 
 ## Commands
 
 ```
-uv sync                                       # add --extra tsfm for Chronos-Bolt (CPU PyTorch)
+uv sync                                       # extras in one command: --extra tsfm (Chronos-Bolt, Chronos-2) --extra timesfm --extra agent
 uv run pytest -q
 uv run ruff check . && uv run ruff format --check .
 uv run reserve prepare synthetic --config configs/synthetic_small.yaml   # fake data, seconds
@@ -59,16 +59,17 @@ uv run reserve prepare macro --cassette tests/fixtures/fred/cassette.json --out 
 uv run reserve prepare freddie --config configs/freddie_sample.yaml      # after the Freddie Mac download
 uv run python scripts/check_data_fit.py freddie data/raw/freddie --fred data/raw/fred
 uv run reserve run configs/freddie_sample.yaml --period recession   # descriptive only
+uv run reserve summary artifacts/runs/<run>   # headline table from a results file, with run id and config hash
 uv run reserve checksums --config configs/freddie_test.yaml   # raw-file SHA-256 into data/checksums.sha256
 uv run reserve seal configs/freddie_test.yaml   # refuses until real data is checksummed; commit lock + checksums
 uv run reserve run configs/synthetic_small.yaml --experiment thin_history   # dev only: 6, 12, 24 months of history
 uv run reserve run configs/synthetic_small.yaml --experiment scenarios      # dev only: hypothetical macro paths, never scored
 uv run reserve monitor artifacts/runs/<run> --contestant <name> --reference-end <date>   # drift lights for a finished run
-uv sync --extra agent && uv run reserve agent "do TSFMs help when history is only 12 months?" --record   # needs ANTHROPIC_API_KEY; capped by configs/agent.yaml
+uv sync --extra tsfm --extra agent && uv run reserve agent "do TSFMs help when history is only 12 months?" --record   # needs ANTHROPIC_API_KEY; capped by configs/agent.yaml
 uv run reserve agent "..." --cassette artifacts/agent/cassettes/<time>.json   # replay a recorded run, no API call
 ```
 
-If a command above does not exist yet, create it as part of the day's task and update this file.
+If a command above does not exist yet, create it as part of the day's task and update this file. The full real-data order is in `docs/runbook.md`.
 
 ## Rules you must not break
 

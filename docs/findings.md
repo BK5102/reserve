@@ -2,7 +2,7 @@
 
 **No results yet.** Nothing in this file is a measurement. It is a placeholder with the structure from `PROMPT.md` section 8, to be filled only from result files under `artifacts/runs/`, each number tagged with its run id and config hash.
 
-Why there is nothing here: the owner has not yet registered for the Freddie Mac dataset or a FRED API key, so no real data has been read (`docs/data-fit.md`). Runs on the synthetic portfolio exist only to check the pipeline and are never reported here (methodology M17).
+Why there is nothing here: the Freddie Mac files have not been downloaded and no FRED API key is set yet, so no real data has been read (`docs/data-fit.md`). Runs on the synthetic portfolio, including the dress rehearsal of the real-data commands, exist only to check the pipeline and are never reported here (methodology M17, M41). `docs/runbook.md` step 14 says how this file is filled: from `reserve summary` output and results files only.
 
 ## 1. Question
 
@@ -10,7 +10,7 @@ Does a zero-shot time series foundation model forecast the next 12 months of Fre
 
 ## 2. Setup
 
-[PLACEHOLDER: data release and checksum, vintages used, origins, contestants and versions, config hash, lock commit.]
+[PLACEHOLDER: data release, commit of `data/checksums.sha256`, vintages used, origins, contestants and versions (whether TimesFM 2.5 was included), config hash, lock commit, number of sealed runs.]
 
 ## 3. Headline table
 
