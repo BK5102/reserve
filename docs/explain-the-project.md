@@ -199,3 +199,11 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** leaving the steps scattered across the README and the docs, which is how the dead-end sealing instruction survived until the rehearsal.
 - **Cause and effect:** writing it found one more fault: the rule meant to let small result files be committed never worked, so the sealed results could not have been kept in the repo; it is fixed. I also added `reserve summary`, which prints the headline table from a results file with its run id and config hash, so the findings can quote numbers without retyping them.
 - **How to say it:** "The real run is a checklist I rehearsed in CI before the data existed, so on the day it is a sequence of commands, not a series of decisions."
+
+### Step 22. Make the data loader fit in a laptop's memory
+
+- **What I did:** the real Freddie Mac sample arrived (all 28 years, 1999 to 2026, about 9 GB of text), and the first data-fit check was stopped for running out of memory. I changed the loader to shrink each year to one row per loan as soon as it is read, instead of stacking every month of every loan first.
+- **Why:** the checks only need a few facts per loan (when it was first and last seen, when it first went 90 days late), and every loan lives in one year's file, so the monthly rows can be dropped year by year.
+- **What else I considered:** loading only some years (a choice I would have to defend), or a bigger machine (the project must run on a laptop CPU).
+- **Cause and effect:** the largest year peaks at about 2.6 GB while being read and shrinks to about 2 MB. A test builds the tables both ways and finds them identical, so no number changes. It is also the first fault that only the real data could reveal: the rehearsal's small fake files never tested size.
+- **How to say it:** "The real data was too big to hold at once, so I summarize each year to one row per loan as it loads, and a test proves the summary gives exactly the same curves."

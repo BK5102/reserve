@@ -47,7 +47,12 @@ class FitSettings:
 
 
 def load_freddie(raw_dir: str | Path) -> tuple[pl.DataFrame, pl.DataFrame, list[dict]]:
-    """All sample years in raw_dir, with a per-file layout report."""
+    """All sample years in raw_dir, with a per-file layout report.
+
+    Returns the origination rows and a one-row-per-loan performance summary. Each year's
+    monthly rows are summarized as soon as they are read and then dropped, so memory holds
+    one year of monthly rows at a time, not all of them (methodology M47).
+    """
     files = loans_io.find_sample_files(raw_dir)
     if not files:
         raise FileNotFoundError(
@@ -71,7 +76,8 @@ def load_freddie(raw_dir: str | Path) -> tuple[pl.DataFrame, pl.DataFrame, list[
             }
         )
         origs.append(orig)
-        perfs.append(perf)
+        perfs.append(vintages.summarize_performance(perf))
+        del perf
     return pl.concat(origs, how="diagonal"), pl.concat(perfs, how="diagonal"), report
 
 
@@ -233,9 +239,8 @@ def check(
     n_marked = loans_io.synthetic_records(orig) if marked else 0
     data = vintages.build(orig, perf)
     curves = data.curves
-    counts = vintages.reconcile(
-        data.loans, curves, orig, perf.filter(pl.col("period") <= data.cutoff)
-    )
+    observed = perf if vintages.is_summary(perf) else perf.filter(pl.col("period") <= data.cutoff)
+    counts = vintages.reconcile(data.loans, curves, orig, observed)
     counts["loans_first_seen_after_age_1"] = int(
         data.loans.filter(pl.col("first_obs_age") > 1).height
     )

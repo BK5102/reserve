@@ -378,6 +378,13 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 - Considered: copying numbers from the JSON by hand (error-prone); a generator that writes `docs/findings.md` itself (the narrative and the judgement about what worked belong to the owner).
 - Limitation: standard runs only; thin-history and scenario runs are read with the agent's `load_results` or from the JSON itself. Numbers are rounded to four significant digits.
 
+**M47. Each year's monthly performance file is cut to one row per loan as it is read.**
+- What: `vintages.summarize_performance` turns monthly rows into one row per loan: first and last observed month, the first event month, whether that event was in forbearance, the last zero balance code, and the row count. `datafit.load_freddie` and `reserve prepare freddie` call it on each year's file right after reading it and keep only the summary, so memory holds one year of monthly rows at a time. `vintages.build`, `loan_outcomes` and `reconcile` accept either monthly rows or a stacked summary. Stacking is refused if any loan appears in two summaries, and a summary cannot be cut at an earlier date than it was made with.
+- Why: the first data-fit run on the real sample (2026-11-20; all 28 years, 1999 to 2026, about 9 GB of text) was stopped by the system for low memory before it printed anything, because every year's monthly rows were stacked before any counting. The largest year alone is 4.5 million monthly rows and peaked at 2.6 GB while being read; its summary is 50,000 rows and about 2 MB (measured on `sample_perf_2012.txt`). The rehearsal (M41) uses small simulated files, so it could not find this (L33). Analogy: tallying each class's grades as its report cards arrive, instead of piling every report card from 28 years on one desk first.
+- Why it changes no number: every quantity the curves and the reconciliation use is a per-loan minimum, maximum, first, last or count, and each loan's rows are all in one year's file, so summarizing per file and stacking gives the same table as summarizing everything at once. A test builds both ways on simulated files and checks that the loan table, the curves and the cutoff are identical.
+- Considered: reading only the years the configs use (the gate counts vintages from 1999 on, and choosing years by hand is a choice to defend); a lazy streaming query over all files at once (harder to test against the existing builder); a bigger machine (CLAUDE.md rule 15: laptop CPU only).
+- Limitation: the duplicate-row check now runs within each year's file; a loan split across two files is caught by the stacking check instead.
+
 ---
 
 ## Limitations register

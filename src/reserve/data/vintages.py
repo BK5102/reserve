@@ -45,20 +45,26 @@ class VintageData:
     cutoff: object  # last performance month used (a date)
 
 
-def loan_outcomes(orig: pl.DataFrame, perf: pl.DataFrame, cutoff=None) -> pl.DataFrame:
-    """One row per originated loan: its vintage, first and last observed month, event, and exit.
+def is_summary(perf: pl.DataFrame) -> bool:
+    """True for the one-row-per-loan output of `summarize_performance`, not monthly rows."""
+    return "n_perf_rows" in perf.columns
 
-    Performance rows after `cutoff` are ignored. Loans with no performance rows are kept
-    (they stay in the denominator and are reported by `reconcile`).
+
+def summarize_performance(perf: pl.DataFrame, cutoff=None) -> pl.DataFrame:
+    """Monthly performance rows to one row per loan (methodology M47).
+
+    Keeps what the vintage builder needs: first and last observed month, the first event
+    month, whether that event was in forbearance, the last zero balance code, and the row
+    count. Rows after `cutoff` are ignored. Each Freddie Mac year can be summarized on its
+    own and the summaries stacked, because a loan appears in only one year's file
+    (`build` checks this), so the full monthly rows never have to sit in memory at once.
     """
     dup = perf.group_by("loan_id", "period").len().filter(pl.col("len") > 1)
     if dup.height:
         raise ReconciliationError(f"{dup.height} duplicated (loan_id, period) rows")
-    if orig["loan_id"].is_duplicated().any():
-        raise ReconciliationError("duplicated loan ids in the origination data")
-    if cutoff is None:
-        cutoff = perf["period"].max()
-    perf = perf.filter(pl.col("period") <= cutoff).sort("loan_id", "period")
+    if cutoff is not None:
+        perf = perf.filter(pl.col("period") <= cutoff)
+    perf = perf.sort("loan_id", "period")
 
     zb = pl.col("zero_balance_code")
     is_event = (
@@ -74,7 +80,7 @@ def loan_outcomes(orig: pl.DataFrame, perf: pl.DataFrame, cutoff=None) -> pl.Dat
     if "disaster_delinquency" in perf.columns:
         forbearance = forbearance | (pl.col("disaster_delinquency") == "Y").fill_null(False)
     perf = perf.with_columns(is_event.alias("_event"), forbearance.alias("_forb"))
-    per_loan = perf.group_by("loan_id").agg(
+    return perf.group_by("loan_id").agg(
         pl.col("period").min().alias("first_obs_period"),
         pl.col("period").max().alias("last_obs_period"),
         pl.col("period").filter(pl.col("_event")).min().alias("event_period"),
@@ -82,6 +88,35 @@ def loan_outcomes(orig: pl.DataFrame, perf: pl.DataFrame, cutoff=None) -> pl.Dat
         zb.drop_nulls().last().alias("zero_balance_code"),
         pl.len().alias("n_perf_rows"),
     )
+
+
+def _summary_and_cutoff(perf: pl.DataFrame, cutoff) -> tuple[pl.DataFrame, object]:
+    """Accept monthly rows or a summary; return (summary up to cutoff, cutoff)."""
+    if not is_summary(perf):
+        if cutoff is None:
+            cutoff = perf["period"].max()
+        return summarize_performance(perf, cutoff), cutoff
+    if perf["loan_id"].is_duplicated().any():
+        raise ReconciliationError(
+            "a loan appears in more than one performance file, so per-file summaries "
+            "cannot be stacked"
+        )
+    last = perf["last_obs_period"].max()
+    if cutoff is not None and last is not None and cutoff < last:
+        raise ValueError("a summary cannot be cut earlier; summarize with that cutoff instead")
+    return perf, last if cutoff is None else cutoff
+
+
+def loan_outcomes(orig: pl.DataFrame, perf: pl.DataFrame, cutoff=None) -> pl.DataFrame:
+    """One row per originated loan: its vintage, first and last observed month, event, and exit.
+
+    `perf` is monthly performance rows or their `summarize_performance` output. Performance
+    rows after `cutoff` are ignored. Loans with no performance rows are kept (they stay in
+    the denominator and are reported by `reconcile`).
+    """
+    if orig["loan_id"].is_duplicated().any():
+        raise ReconciliationError("duplicated loan ids in the origination data")
+    per_loan, _ = _summary_and_cutoff(perf, cutoff)
     out = orig.select("loan_id", "vintage").join(per_loan, on="loan_id", how="left")
     qend = months.expr_index(months.expr_quarter_end("vintage"))
 
@@ -199,19 +234,24 @@ def vintage_curves(loans: pl.DataFrame, cutoff) -> pl.DataFrame:
 
 
 def build(orig: pl.DataFrame, perf: pl.DataFrame, cutoff=None) -> VintageData:
-    """Loan outcomes plus vintage curves, reconciled. `cutoff` defaults to the last month."""
-    if cutoff is None:
-        cutoff = perf["period"].max()
-    loans = loan_outcomes(orig, perf, cutoff)
+    """Loan outcomes plus vintage curves, reconciled. `cutoff` defaults to the last month.
+
+    `perf` is monthly performance rows or their `summarize_performance` output.
+    """
+    per_loan, cutoff = _summary_and_cutoff(perf, cutoff)
+    loans = loan_outcomes(orig, per_loan, cutoff)
     curves = vintage_curves(loans, cutoff)
-    reconcile(loans, curves, orig, perf.filter(pl.col("period") <= cutoff))
+    reconcile(loans, curves, orig, per_loan)
     return VintageData(loans=loans, curves=curves, cutoff=cutoff)
 
 
 def reconcile(
     loans: pl.DataFrame, curves: pl.DataFrame, orig: pl.DataFrame, perf: pl.DataFrame
 ) -> dict[str, int]:
-    """Check that every count adds up; raise ReconciliationError if not. Returns the counts."""
+    """Check that every count adds up; raise ReconciliationError if not. Returns the counts.
+
+    `perf` is monthly rows or a `summarize_performance` summary; only its loan ids are used.
+    """
     counts = {
         "loans_in_origination": orig.height,
         "loans_in_outcomes": loans.height,

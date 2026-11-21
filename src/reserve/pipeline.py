@@ -43,7 +43,11 @@ def _read_freddie(raw_dir: Path) -> tuple[pl.DataFrame, pl.DataFrame, list[Path]
         )
     cols = ("first_payment_date", *loans.MARKER_COLUMNS)
     orig = pl.concat([loans.read_origination(o, columns=cols) for _, o, _ in files])
-    perf = pl.concat([loans.read_performance(p) for _, _, p in files], how="diagonal")
+    # One year of monthly rows in memory at a time: each is cut to one row per loan (M47).
+    perf = pl.concat(
+        [vintages.summarize_performance(loans.read_performance(p)) for _, _, p in files],
+        how="diagonal",
+    )
     return orig, perf, [p for _, o, pf in files for p in (o, pf)]
 
 

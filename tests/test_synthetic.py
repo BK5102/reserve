@@ -1,5 +1,7 @@
 """Synthetic portfolio: exact Freddie Mac layout, and the pipeline recovers its known answers."""
 
+from datetime import date
+
 import numpy as np
 import polars as pl
 import pytest
@@ -117,3 +119,36 @@ def test_forbearance_window_flags_events():
     flagged = data.loans.filter(pl.col("event_in_forbearance"))
     assert flagged.height > 0
     assert flagged["event_period"].min() >= synthetic.months.parse("2020-04")
+
+
+def test_per_year_summaries_give_the_same_tables(written, built):
+    """Summarizing each year's file on its own, then stacking, changes nothing (M47)."""
+    files = loans.find_sample_files(written / "freddie")
+    orig = pl.concat([loans.read_origination(o) for _, o, _ in files])
+    summary = pl.concat(
+        [vintages.summarize_performance(loans.read_performance(p)) for _, _, p in files]
+    )
+    assert vintages.is_summary(summary) and summary.height < sum(
+        loans.read_performance(p).height for _, _, p in files
+    )
+    stacked = vintages.build(orig, summary)
+    assert stacked.cutoff == built.cutoff
+    assert stacked.loans.equals(built.loans)
+    assert stacked.curves.equals(built.curves)
+
+
+def test_a_loan_in_two_summaries_is_refused(written):
+    _, o, p = loans.find_sample_files(written / "freddie")[0]
+    one = vintages.summarize_performance(loans.read_performance(p))
+    with pytest.raises(vintages.ReconciliationError, match="more than one performance file"):
+        vintages.build(loans.read_origination(o), pl.concat([one, one]))
+
+
+def test_a_summary_cannot_be_cut_earlier(written, built):
+    files = loans.find_sample_files(written / "freddie")
+    orig = pl.concat([loans.read_origination(o) for _, o, _ in files])
+    summary = pl.concat(
+        [vintages.summarize_performance(loans.read_performance(p)) for _, _, p in files]
+    )
+    with pytest.raises(ValueError, match="cannot be cut earlier"):
+        vintages.build(orig, summary, cutoff=date(2010, 1, 1))
