@@ -22,19 +22,21 @@ One piece of arithmetic, not a measurement: the sample holds 50,000 loans per fu
 
 ## Real-data results
 
+Command: `uv run python scripts/check_data_fit.py freddie data/raw/freddie --out artifacts/data_fit_freddie.json`, run 2026-11-21 on the Freddie Mac sample files downloaded 2026-11-20 (exit code 0). Every number below is copied from that report. The macro row is filled after `reserve prepare macro` (runbook step 4).
+
 | Check | Result |
 |---|---|
-| Files found, layout detected per file | PENDING |
-| Last performance month (Release 48 notes say 2026-06-30) | PENDING |
-| Vintages and loans per quarter | PENDING |
-| Cumulative events by age 12 (median over usable vintages), relative binomial standard error | PENDING |
-| Class-average 12-month error divided by binomial noise | PENDING |
-| Recession (2007-12 to 2009-06): vintages observed, events | PENDING |
-| COVID window (2020-03 to 2021-12): events, share flagged forbearance | PENDING |
-| Reconciliation: loans without performance, first seen after age 1, vanishing without a code | PENDING |
-| Power: test origins, independent windows, minimum detectable effect | PENDING |
+| Files found, layout detected per file | 28 sample years, 1999 to 2026 (56 files); every file in the current layout |
+| Last performance month (Release 48 notes say 2026-06-30) | 2026-06 (matches) |
+| Vintages and loans per quarter | 110 vintages (1999Q1 to 2026Q2); median 12,500 loans per quarter; 1,375,000 loans in all |
+| Cumulative events by age 12 (median over usable vintages), relative binomial standard error | 38.5 events; relative standard error 0.161; 83% of usable vintages reach 20 events |
+| Class-average 12-month error divided by binomial noise | 9.5 (98 vintages): a simple class average is far from the noise floor, so better forecasts are possible |
+| Recession (2007-12 to 2009-06): vintages observed, events | 41 vintages observed (31 with 12 months before the window); 7,015 events in the window |
+| COVID window (2020-03 to 2021-12): events, share flagged forbearance | 14,409 events, 92.1% flagged forbearance (peak 5,433 in one month against a 2019 mean of 110); excluded from scoring as planned |
+| Reconciliation: loans without performance, first seen after age 1, vanishing without a code | 16 loans without performance rows; 102,457 first seen after age 1; 0 vanishing without a code; 0 performance loans missing from origination; 67,576 loans with an event |
+| Power: test origins, independent windows, minimum detectable effect | 24 test origins with targets (1,620 vintage-origin pairs, 79 vintages); 6 independent windows; minimum detectable effect 0.66 standard deviations over all origins, 1.32 over independent windows (3 comparisons assumed) |
 | Macro: first observation, number of ALFRED vintages, first vintage date, missing values | PENDING |
-| Gate | PENDING |
+| Gate | PASS: 102 usable vintages (need 60), median 38.5 events by age 12 (need 20) |
 
 ## Synthetic run (proves the checks work; NOT real data)
 
