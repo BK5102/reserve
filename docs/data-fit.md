@@ -22,7 +22,7 @@ One piece of arithmetic, not a measurement: the sample holds 50,000 loans per fu
 
 ## Real-data results
 
-Command: `uv run python scripts/check_data_fit.py freddie data/raw/freddie --out artifacts/data_fit_freddie.json`, run 2026-11-21 on the Freddie Mac sample files downloaded 2026-11-20 (exit code 0). Every number below is copied from that report. The macro row is filled after `reserve prepare macro` (runbook step 4).
+Command: `uv run python scripts/check_data_fit.py freddie data/raw/freddie --out artifacts/data_fit_freddie.json`, run 2026-11-21 on the Freddie Mac sample files downloaded 2026-11-20 (exit code 0). Every number below is copied from that report. The macro row comes from the same command rerun with `--fred data/raw/fred` after `reserve prepare macro` (runbook step 4), the same day; the gate result did not change.
 
 | Check | Result |
 |---|---|
@@ -35,7 +35,7 @@ Command: `uv run python scripts/check_data_fit.py freddie data/raw/freddie --out
 | COVID window (2020-03 to 2021-12): events, share flagged forbearance | 14,409 events, 92.1% flagged forbearance (peak 5,433 in one month against a 2019 mean of 110); excluded from scoring as planned |
 | Reconciliation: loans without performance, first seen after age 1, vanishing without a code | 16 loans without performance rows; 102,457 first seen after age 1; 0 vanishing without a code; 0 performance loans missing from origination; 67,576 loans with an event |
 | Power: test origins, independent windows, minimum detectable effect | 24 test origins with targets (1,620 vintage-origin pairs, 79 vintages); 6 independent windows; minimum detectable effect 0.66 standard deviations over all origins, 1.32 over independent windows (3 comparisons assumed) |
-| Macro: first observation, number of ALFRED vintages, first vintage date, missing values | PENDING |
+| Macro: first observation, number of ALFRED vintages, first vintage date, missing values | UNRATE: from 1948-01, 801 vintages, first vintage 1960-03-15, 1 missing value. MORTGAGE30US: from 1971-04, 858 vintages, first vintage 2010-06-17, none missing. HPIPONM226S: from 1991-01, 174 vintages, first vintage 2012-05-23, none missing. As-known values therefore exist for every month only for unemployment; the mortgage rate is as-known from 2010-06 and the house price index from 2012-05 (limitation L12) |
 | Gate | PASS: 102 usable vintages (need 60), median 38.5 events by age 12 (need 20) |
 
 ## Synthetic run (proves the checks work; NOT real data)

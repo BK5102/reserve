@@ -404,7 +404,7 @@ The honest list. Each item says what could be wrong and what was done about it.
 | L9 | Events before Freddie Mac acquires a loan are not observed | A few early events could be missed | Data-fit check reports loans first seen after age 1 |
 | L10 | National macro series only | Regional shocks are missed | Stated (M13); state-level series deferred |
 | L11 | Latest mode leaks revisions | Forecasts could use revised values unknown at the time | As-of mode by default; latest mode sets `revisions_ignored` on every row and result (M15) |
-| L12 | ALFRED vintage coverage and the "." missing marker are unverified | As-of mode may have gaps for early years | Checked by the data-fit script once the FRED key exists (M14) |
+| L12 | ALFRED vintages start late for two series (measured 2026-11-21): MORTGAGE30US from 2010-06-17, HPIPONM226S from 2012-05-23; UNRATE from 1960 | In as-of mode, contestant C has no house-price feature before 2012-05, so it cannot forecast from dev (2010 to 2012) or recession origins, and in the test it trains only on months from 2012-05 | Open: a decision is needed before the dev runs (`docs/data-fit.md`, macro row) |
 | L13 | Simulator is far simpler than real mortgages | Pipeline checks on it say nothing about real performance | Used only for tests and pipeline checks; never in findings (M17) |
 | L14 | Only about 6 independent 12-month windows in the test period | Small real gains may be undetectable | MDE reported before any result (M21); negative results stay in |
 | L15 | The events gate and noise-floor settings are judgment calls | A borderline dataset could pass or fail on the setting | All settings in `FitSettings`, reported in every data-fit output |
