@@ -60,8 +60,8 @@ def validate(cfg: dict[str, Any]) -> None:
     quantiles = ev["quantiles"]
     if sorted(quantiles) != list(quantiles) or not all(0 < q < 1 for q in quantiles):
         raise ConfigError("quantiles must be increasing and inside (0, 1)")
-    if cfg.get("macro", {}).get("mode", "asof") not in ("asof", "latest", "none"):
-        raise ConfigError("macro.mode must be 'asof', 'latest', or 'none'")
+    if cfg.get("macro", {}).get("mode", "asof") not in ("asof", "asof_fallback", "latest", "none"):
+        raise ConfigError("macro.mode must be 'asof', 'asof_fallback', 'latest', or 'none'")
     for period in ev["origins"]:
         lo, hi = origin_window(cfg, period)
         if lo > hi:

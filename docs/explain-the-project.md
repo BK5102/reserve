@@ -207,3 +207,20 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
 - **What else I considered:** loading only some years (a choice I would have to defend), or a bigger machine (the project must run on a laptop CPU).
 - **Cause and effect:** the largest year peaks at about 2.6 GB while being read and shrinks to about 2 MB. A test builds the tables both ways and finds them identical, so no number changes. It is also the first fault that only the real data could reveal: the rehearsal's small fake files never tested size.
 - **How to say it:** "The real data was too big to hold at once, so I summarize each year to one row per loan as it loads, and a test proves the summary gives exactly the same curves."
+
+### Step 23. The real data passes its check, and three choices are made before any model runs
+
+- **What I did:** the data-fit gate passed on the real sample: 102 usable vintages (60 needed) and a median of 38.5 defaults by age 12 (20 needed), with all 1,375,000 loans reconciled. Then I made three choices, each before any model had touched the real data:
+  - Macro data: use archived as-known values where they exist, and flagged current values only before the archive starts.
+  - Include TimesFM 2.5 as a third pretrained model.
+  - Approve the plan's defaults.
+- **Why:** the macro download showed the archive starts in 2010 for mortgage rates and 2012 for house prices. Strictly as-known data would have left the macro baseline unable to forecast from the development and recession origins. Settling all three choices now means none can be tuned toward a test result later.
+- **What else I considered:**
+  - Using unemployment only, which is cleaner but drops the two mortgage-specific features and changes the design after looking at the data.
+  - Using current values everywhere, which ignores revisions even where the archive exists.
+  - Leaving TimesFM out, because it is slower and some of its training data overlaps the test years.
+- **Cause and effect:**
+  - Every test origin still uses only as-known macro values.
+  - The flagged fallback affects only older training months. I measured its cost: mortgage rates were never revised, and house-price growth can be off by about 0.4 of a typical swing before 2012.
+  - The test now compares three pretrained models from two labs.
+- **How to say it:** "Where the historical record of what was known exists, I use it. Where it does not, I use today's value and flag it, I measured how much that could matter, and I made the choice before any model saw the data."

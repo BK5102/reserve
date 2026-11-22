@@ -153,7 +153,7 @@ def test_shipped_dev_and_test_configs_are_the_same_plan():
     assert dev == test
 
 
-def test_seal_refuses_until_the_data_and_plan_are_ready(freddie_style):
+def test_seal_refuses_until_the_data_and_plan_are_ready(freddie_style, monkeypatch):
     cfg = copy.deepcopy(freddie_style)
     found = " ".join(pipeline.seal_problems(cfg))
     assert "period is 'dev'" in found and "does not exist" in found  # no checksums yet
@@ -167,7 +167,12 @@ def test_seal_refuses_until_the_data_and_plan_are_ready(freddie_style):
     assert pipeline.seal_problems(cfg, rehearsal=True) == []  # rehearsal: synthetic only
     stub = copy.deepcopy(cfg)
     stub["contestants"]["tsfm"] = ["timesfm_2p5"]
-    assert any("stub" in p or "needs" in p for p in pipeline.seal_problems(stub, rehearsal=True))
+    # Whether or not the timesfm extra is installed here, a missing package must block the seal.
+    from reserve.models import tsfm
+
+    monkeypatch.setattr(tsfm, "missing_packages", lambda name: ["timesfm"])
+    assert any("needs" in p for p in pipeline.seal_problems(stub, rehearsal=True))
+    monkeypatch.undo()
     # A raw file that changes after its checksum was recorded blocks the seal.
     raw = sorted(Path(cfg["data"]["raw_dir"]).glob("sample_orig_*.txt"))[0]
     raw.write_text(raw.read_text() + "\n")

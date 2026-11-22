@@ -9,7 +9,7 @@ Commands are shown for PowerShell; in bash, set variables with `export NAME=valu
 1. **Freddie Mac sample files.** Registered at Freddie Mac's Clarity Data Intelligence (linked as "Access Historical Data" on the [dataset page](https://www.freddiemac.com/research/datasets/sf-loanlevel-dataset)), downloaded every `sample_YYYY.zip`, and unzipped them so that `data/raw/freddie/` directly holds `sample_orig_YYYY.txt` and `sample_perf_YYYY.txt` pairs (no subfolders). The files are never committed.
 2. **FRED API key** from [FRED API keys](https://fred.stlouisfed.org/docs/api/api_key.html), kept in the environment only: `$env:FRED_API_KEY = "your-key"`.
 3. **Anthropic API key** for the agent, environment only: `$env:ANTHROPIC_API_KEY = "your-key"`. Every live agent run is capped by `configs/agent.yaml` (10 dollars per run by default; methodology M45).
-4. **TimesFM 2.5 decision.** Recommended: install it from the official source repo at the pinned commit, which is already declared as the `timesfm` extra (methodology M44). The switch is one flag on the install line in step 0, plus adding `timesfm_2p5` to the TSFM list in both Freddie Mac configs in step 7. Leaving it out keeps two TSFMs, which is stated in the findings.
+4. **TimesFM 2.5 decision.** Decided 2026-11-21: included (`docs/decisions.md` D27). It is already in both Freddie Mac configs, so install with `--extra timesfm` in step 0. The macro fallback (M48, D26) and the approved defaults (D28) are also already in the configs.
 
 ## Step 0. Install once
 

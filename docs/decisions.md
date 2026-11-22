@@ -116,8 +116,37 @@ Every live call of `reserve agent` now passes a cap from `configs/agent.yaml` (1
 
 The first data-fit run on the real Freddie Mac sample ran out of memory, because it stacked every monthly row of 28 years before counting anything. Each year is now cut to one row per loan as it is read, which is all the curves need, and a test shows the tables are identical either way. Analogy: tallying each class's grades as its report cards arrive, instead of piling 28 years of report cards on one desk first.
 
+### D26. Missing macro history: as-known where it exists, flagged latest values before
+
+FRED's archive of past releases starts in 2010 for the mortgage rate and 2012 for house prices, so before then nobody can say what an analyst knew. Reserve now uses the archived value wherever one exists and today's value, flagged, before that. This keeps the macro baseline (C) able to forecast from every origin and train on the full history, while every test origin still uses only as-known values. We chose this over three alternatives:
+- **Strict as-of:** C would fail on dev and the recession and train on about a year of data in the test, a handicap unrelated to forecasting skill.
+- **Unemployment only:** it would drop the two features most tied to mortgages, and change C's design after seeing the data.
+- **Today's values everywhere:** it would ignore revisions even where the archive exists.
+
+The cost is measured, not assumed. Mortgage rates were never revised, so they are exact. House-price growth differs by about 0.4 of a typical swing on average before 2012 (methodology M48, L12). Analogy: when the old newspaper for a date is missing from the library, you use today's almanac for that date and stamp the page "from a later source", but only for the dates the library cannot cover.
+
+### D27. TimesFM 2.5 is in the sealed plan
+
+TimesFM 2.5 is added to both Freddie Mac configs and installed with the `timesfm` extra, so the test has three pretrained models from two labs and two architectures, not two closely related Chronos models. The other option was to leave it out because it is about 26 times slower than Chronos-2 and some of its training data postdates the test period (L25). The extra CPU time is small for this test, about a quarter hour (an estimate, not measured on the real data), and the training-data overlap is disclosed next to any TimesFM number, so including it adds evidence without hiding a weakness. Analogy: inviting a third judge from a different school, while noting on the score sheet that this judge may have seen some of the questions before.
+
+### D28. The plan's defaults are approved as written
+
+The owner approved these defaults on 2026-11-21, after the real data-fit check had passed, and without seeing any model result:
+- **Event:** "ever 90 or more days late, or defaulted" (M7).
+- **COVID:** 2020 to 2021 excluded from the headline (M20). The real data supports this: 92% of events in that window were flagged as forbearance.
+- **Recession:** reported but not scored, because there is one episode (M31).
+- **Other settings:** the scenario sizes (M35), the drift thresholds (M36), and thin history of 6, 12 and 24 months (M34).
+- **Power:** the test holds about 6 independent 12-month windows (M21), and this is stated up front.
+
+Alternatives were weighed in each entry. For example:
+- 60 days late is an earlier warning, but 90 days is the usual default line.
+- Keeping COVID would score models on payment pauses rather than credit losses.
+- Scoring the recession would make one episode carry a general claim.
+
+Approving them now, before any test number exists, is what makes them pre-registered choices rather than choices fitted to the result. Analogy: agreeing on the rules of the match before the teams take the field.
+
 ## Where things stand
 
-Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check with a go/no-go exit code, three classical contestants, three real TSFM adapters (Chronos-Bolt-tiny and Chronos-2 behind the `tsfm` extra, TimesFM 2.5 behind the `timesfm` extra and verified in a scratch environment) plus the fake stand-in, the harness, scoring, configs, the sealed test config with a seal that refuses unready data or plans, raw-file checksums, the thin-history experiment, hypothetical macro scenarios, the drift monitor, the agent with a hard spend cap and a record mode, `reserve doctor`, `reserve summary`, and a dress rehearsal of every real-data command that runs in CI. The Freddie Mac sample (1999 to 2026) is downloaded and the FRED key is set (2026-11-20). Blocked on the owner: an Anthropic API key and the decision to include TimesFM 2.5 (`docs/runbook.md` lists every step after that). Not started: TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, and slice analysis.
+Built and tested on synthetic data: the loader, the vintage builder, the macro loader, the data-fit check with a go/no-go exit code, three classical contestants, three real TSFM adapters (Chronos-Bolt-tiny and Chronos-2 behind the `tsfm` extra, TimesFM 2.5 behind the `timesfm` extra and verified in a scratch environment) plus the fake stand-in, the harness, scoring, configs, the sealed test config with a seal that refuses unready data or plans, raw-file checksums, the thin-history experiment, hypothetical macro scenarios, the drift monitor, the agent with a hard spend cap and a record mode, `reserve doctor`, `reserve summary`, and a dress rehearsal of every real-data command that runs in CI. The Freddie Mac sample (1999 to 2026) and the ALFRED macro tables are downloaded, the data-fit gate passed on the real data, both API keys are set, and the owner decided D26 to D28 (2026-11-21). Next: the development runs, then sealing (`docs/runbook.md` lists every step after that). Not started: TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, and slice analysis.
 
 How to say it: "Everything up to the real data is built, tested against a simulator with known answers, and rehearsed command by command in CI; the real run is a documented sequence that starts the day the data download is done, and the results file stays empty until then."

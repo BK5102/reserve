@@ -17,7 +17,9 @@ data:
   interim_dir: data/interim/freddie_sample
   checksums: data/checksums.sha256
 macro:
-  mode: asof
+  # ALFRED where an as-known record exists, latest values (flagged) before a series'
+  # first vintage: MORTGAGE30US before 2010-06, HPIPONM226S before 2012-05 (M48, D26).
+  mode: asof_fallback
 evaluation:
   period: test
   origins:
@@ -35,8 +37,9 @@ contestants:
   A_last_increment: {window: 3}
   B_age_curve: {donors: 8}
   C_hazard_macro: {draws: 200, exit_window: 24}
-  # Real TSFMs only; needs `uv sync --extra tsfm`. Add timesfm_2p5 before sealing if the
-  # timesfm extra is installed (docs/tsfm-notes.md); never after.
-  tsfm: [chronos_bolt_tiny, chronos2]
+  # Real TSFMs only; needs `uv sync --extra tsfm --extra timesfm` (docs/tsfm-notes.md).
+  # TimesFM 2.5 included by owner decision 2026-11-21 (docs/decisions.md D27); the list
+  # must not change after sealing.
+  tsfm: [chronos_bolt_tiny, chronos2, timesfm_2p5]
 lock_dir: locks
 artifacts_dir: artifacts/runs

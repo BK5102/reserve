@@ -6,7 +6,7 @@ Can a pretrained time series foundation model (TSFM) forecast how each batch of 
 
 Lenders track every quarter's new loans as a group, called a vintage, the way a school tracks a graduating class: what share of the class has ever gone 90 or more days late by each month of age. Reserve forecasts the next 12 months of those curves with three classical methods and pretrained models, under an evaluation built so no model can see the future.
 
-**Status: pipeline, three pretrained models, and the agent built and tested on synthetic data; the real-data commands are rehearsed end to end in CI. No result exists yet.** Real data is waiting on the owner's manual steps (see [Manual steps](#manual-steps)); from there, [`docs/runbook.md`](docs/runbook.md) lists every command in order. Every number produced so far comes from a simulator and is a pipeline check, not a finding.
+**Status: pipeline, three pretrained models, and the agent built and tested on synthetic data; the real-data commands are rehearsed end to end in CI. No result exists yet.** The real Freddie Mac sample and ALFRED macro tables are downloaded and the data-fit gate passed on them ([`docs/data-fit.md`](docs/data-fit.md)); next are the development runs and sealing, in the order of [`docs/runbook.md`](docs/runbook.md). Every number produced so far comes from a simulator and is a pipeline check, not a finding.
 
 **Limits on the first screen:** the data is Freddie Mac's public sample of prime, conforming, fixed-rate US mortgages, not all consumer credit, and not any bank's own loans. The 2007 to 2009 recession is a single episode and is reported descriptively only. COVID forbearance months (2020 to 2021) are excluded from scoring.
 
@@ -29,7 +29,7 @@ The synthetic run takes about 10 seconds on a laptop CPU and prints "SYNTHETIC D
 
 ## Manual steps
 
-Four things only the owner can do. None has been done yet.
+Four things only the owner can do, all done by 2026-11-21: the files are downloaded, both keys are set in the environment, and TimesFM 2.5 is included (`docs/decisions.md` D27). Kept here so anyone can repeat them.
 
 1. **Freddie Mac sample files.** Register and sign in to Freddie Mac's Clarity Data Intelligence (linked as "Access Historical Data" on the [dataset page](https://www.freddiemac.com/research/datasets/sf-loanlevel-dataset)), download `sample_YYYY.zip` for every year, and unzip them directly into `data/raw/freddie/` so it holds `sample_orig_YYYY.txt` and `sample_perf_YYYY.txt` pairs. Use of the data is subject to Freddie Mac's dataset terms; the files are never committed (`data/raw/` is gitignored).
 2. **FRED API key**, free from the St. Louis Fed ([FRED API keys](https://fred.stlouisfed.org/docs/api/api_key.html)), in the environment only: `$env:FRED_API_KEY = "your-key"` (PowerShell) or `export FRED_API_KEY=your-key` (bash).

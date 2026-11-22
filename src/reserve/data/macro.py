@@ -213,15 +213,26 @@ def end_of_month(d: date) -> date:
 FEATURES = ("unemployment", "unemployment_change_12m", "mortgage_rate", "hpi_growth_12m")
 
 
-def _known_series(obs: pl.DataFrame, series: Series, month: date, mode: str) -> pl.DataFrame:
-    if mode == "asof":
-        known = as_of(obs, end_of_month(month))
-    elif mode == "latest":
+MODES = ("asof", "asof_fallback", "latest")
+
+
+def _known_series(
+    obs: pl.DataFrame, series: Series, month: date, mode: str
+) -> tuple[pl.DataFrame, bool]:
+    """The series as known at the end of `month`, and whether latest values stood in.
+
+    `asof_fallback` is `asof` except in months before the series' first ALFRED vintage,
+    where no as-known record exists; there it uses `latest_with_lag` (methodology M48).
+    """
+    if mode not in MODES:
+        raise ValueError(f"mode must be one of {MODES}")
+    fell_back = mode == "asof_fallback" and obs["realtime_start"].min() > end_of_month(month)
+    if mode == "latest" or fell_back:
         known = latest_with_lag(obs, series, month)
     else:
-        raise ValueError("mode must be 'asof' or 'latest'")
+        known = as_of(obs, end_of_month(month))
     known = to_monthly(known, series.frequency)
-    return known.filter(pl.col("date") <= month)
+    return known.filter(pl.col("date") <= month), fell_back
 
 
 def _last_and_lag(known: pl.DataFrame, lag: int) -> tuple[float, float]:
@@ -245,14 +256,18 @@ def macro_features(
     - hpi_growth_12m: log change of HPIPONM226S over the 12 months to its newest known month.
 
     `mode="asof"` uses ALFRED vintages; `mode="latest"` uses today's values with each
-    series' publication lag and sets `revisions_ignored` to true.
+    series' publication lag and sets `revisions_ignored` to true. `mode="asof_fallback"`
+    uses ALFRED vintages where they exist and latest values before a series' first
+    vintage; `latest_fallback` names the series that fell back in that month, and
+    `revisions_ignored` is true in those months only (methodology M48).
     """
     rows = []
     for month in feature_months:
-        known = {
-            sid: _known_series(observations[sid], SERIES[sid], month, mode)
-            for sid in ("UNRATE", "MORTGAGE30US", "HPIPONM226S")
-        }
+        known, fallback = {}, []
+        for sid in ("UNRATE", "MORTGAGE30US", "HPIPONM226S"):
+            known[sid], fell_back = _known_series(observations[sid], SERIES[sid], month, mode)
+            if fell_back:
+                fallback.append(sid)
         u, u12 = _last_and_lag(known["UNRATE"], 12)
         r, _ = _last_and_lag(known["MORTGAGE30US"], 0)
         h, h12 = _last_and_lag(known["HPIPONM226S"], 12)
@@ -263,10 +278,13 @@ def macro_features(
                 "unemployment_change_12m": u - u12,
                 "mortgage_rate": r,
                 "hpi_growth_12m": float(np.log(h / h12)) if h12 and h12 > 0 else np.nan,
-                "revisions_ignored": mode == "latest",
+                "revisions_ignored": mode == "latest" or bool(fallback),
+                "latest_fallback": ",".join(fallback) or None,
             }
         )
-    return pl.DataFrame(rows).with_columns(pl.col(FEATURES).fill_nan(None))
+    return pl.DataFrame(rows, schema_overrides={"latest_fallback": pl.String}).with_columns(
+        pl.col(FEATURES).fill_nan(None)
+    )
 
 
 def load_observations(raw_dir: str | Path) -> dict[str, pl.DataFrame]:

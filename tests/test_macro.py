@@ -127,3 +127,41 @@ def test_download_and_load_round_trip(tmp_path, client):
     loaded = macro.load_observations(tmp_path)
     assert set(loaded) == set(macro.SERIES)
     assert loaded["UNRATE"].height == 29
+
+
+def test_fallback_only_before_a_series_first_vintage(observations):
+    """asof_fallback = asof wherever ALFRED has a vintage; latest values only before it (M48)."""
+    # HPIPONM226S's first fixture vintage is 2018-03-07, so February 2018 has no record.
+    early = macro.macro_features(observations, [date(2018, 2, 1)], mode="asof_fallback")
+    strict = macro.macro_features(observations, [date(2018, 2, 1)], mode="asof")
+    row = early.row(0, named=True)
+    assert row["latest_fallback"] == "HPIPONM226S" and row["revisions_ignored"] is True
+    assert row["unemployment"] == strict["unemployment"][0]  # UNRATE had a vintage: as-of
+    assert row["mortgage_rate"] == strict["mortgage_rate"][0]
+    later = [date(2019, m, 1) for m in range(1, 13)] + [date(2020, 2, 1)]
+    a = macro.macro_features(observations, later, mode="asof")
+    f = macro.macro_features(observations, later, mode="asof_fallback")
+    assert f["latest_fallback"].null_count() == f.height
+    assert not f["revisions_ignored"].any()
+    assert f.drop("latest_fallback").equals(a.drop("latest_fallback"))
+
+
+def test_fallback_fills_a_missing_house_price_record(observations):
+    """No vintage for a month: strict as-of leaves the feature empty; fallback fills it."""
+    month = [date(2019, 3, 1)]
+    hpi_late = {
+        **observations,
+        "HPIPONM226S": observations["HPIPONM226S"].with_columns(
+            pl.lit(date(2019, 6, 1)).alias("realtime_start")
+        ),
+    }
+    assert macro.macro_features(hpi_late, month, mode="asof")["hpi_growth_12m"][0] is None
+    filled = macro.macro_features(hpi_late, month, mode="asof_fallback").row(0, named=True)
+    latest = macro.macro_features(hpi_late, month, mode="latest").row(0, named=True)
+    assert filled["hpi_growth_12m"] == pytest.approx(latest["hpi_growth_12m"])
+    assert filled["latest_fallback"] == "HPIPONM226S"
+
+
+def test_unknown_mode_is_refused(observations):
+    with pytest.raises(ValueError, match="mode must be one of"):
+        macro.macro_features(observations, [date(2019, 3, 1)], mode="asoff")

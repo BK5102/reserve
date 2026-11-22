@@ -84,9 +84,11 @@ class HazardRegression:
         self.last_fit: dict = {}
 
     def describe(self) -> dict:
-        revisions = None
+        revisions, fallback_months = None, None
         if self.macro is not None and "revisions_ignored" in self.macro.columns:
             revisions = bool(self.macro["revisions_ignored"].any())
+        if self.macro is not None and "latest_fallback" in self.macro.columns:
+            fallback_months = int(self.macro["latest_fallback"].is_not_null().sum())
         return {
             "name": self.name,
             "features": list(self.features),
@@ -95,6 +97,7 @@ class HazardRegression:
             "draws": self.draws,
             "seed": self.seed,
             "macro_revisions_ignored": revisions,
+            "macro_months_on_latest_fallback": fallback_months,
             "scenario": self.scenario.describe() if self.scenario is not None else None,
         }
 
