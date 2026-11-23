@@ -49,7 +49,7 @@ Install with every extra you want in one command, because `uv sync` removes extr
 | Macro series (unemployment, 30-year mortgage rate, FHFA house prices) as known at the time, from ALFRED | `src/reserve/data/macro.py` | Fake FRED cassette; leak test deleting and corrupting later releases |
 | Synthetic portfolio with known answers (tests only) | `src/reserve/data/synthetic.py` | The pipeline recovers every simulated event exactly |
 | Data-fit check | `scripts/check_data_fit.py` | Synthetic run, and the real data (gate passed 2026-11-21) |
-| Contestants: A last pace persists, B average age curve, C hazard regression on age and past-only macro, D TSFMs: Chronos-Bolt-tiny and Chronos-2 (`tsfm` extra) and TimesFM 2.5 (`timesfm` extra, from GitHub at a pinned commit) | `src/reserve/models/` | Values by hand, known coefficients recovered, corrupted-future leak tests; each TSFM checked against the real model when its extra is installed (TimesFM in a scratch environment) |
+| Contestants: A last pace persists, B average age curve, C hazard regression on age and past-only macro, D TSFMs: Chronos-Bolt-tiny and Chronos-2 (`tsfm` extra) and TimesFM 2.5 (`timesfm` extra, from GitHub at a pinned commit) | `src/reserve/models/` | Values by hand, known coefficients recovered, corrupted-future leak tests; each TSFM checked against the real model when its extra is installed; all three ran in the sealed test |
 | Rolling origins and scores from the shared Cleanroom (splits, quantile losses, coverage, Diebold-Mariano, Holm, sealed runs) | `src/reserve/evaluation/` | Hand-computed scores; sealed-run guard refuses a missing or changed lock |
 | Thin-history experiment: the portfolio is 6, 12, or 24 months old, same targets at every level, dev only | `src/reserve/evaluation/experiments.py` | A spy contestant sees no older vintage; corrupted-future leak test; Holm across levels |
 | HYPOTHETICAL macro scenarios (baseline, adverse, severe) for contestant C, never scored, dev only | `src/reserve/stress/scenarios.py` | Paths by hand; baseline equals the flat path; leak test on later macro releases |
@@ -64,7 +64,7 @@ The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tr
 - Every forecast at month t uses only data known at t: curve cells up to t, and macro values as published by the end of t (ALFRED vintages). A test corrupts everything after t and checks that no forecast changes.
 - Forecast origins are Cleanroom splits; the development window ends a full horizon before the test window starts, so no development outcome is a test answer.
 - The test period is scored only under a committed lock for that exact config and data, and every attempt is counted.
-- Every TSFM must beat the best classical baseline, picked after the fact, with a Diebold-Mariano test and Holm's correction for the number of comparisons.
+- Every TSFM must beat the best classical baseline, chosen by a rule written before any result (M29), with a Diebold-Mariano test and Holm's correction for the number of comparisons.
 - Negative results stay in. Synthetic data never appears in findings.
 
 ## Docs
@@ -80,7 +80,7 @@ The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tr
 
 ## Not built yet
 
-TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, slice analysis, and any live agent run (PLAN.md Part 6).
+TSFMs with macro covariates, the ensemble contestant, calibration plots, the toy reserve translation, slice analysis (PLAN.md Part 6), and any live agent run: the agent's evidence pack needs paid API calls and was skipped to avoid spending.
 
 ## Related projects
 
