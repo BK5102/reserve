@@ -1,0 +1,599 @@
+{
+  "run_id": "20261123T022625Z_freddie_test_test_d6120cf1",
+  "config_name": "freddie_test",
+  "config_hash": "d6120cf1b45a0f69cd0b9bfcf89ee3fd3a8fe3809d91dcf8ec008e341e45abbf",
+  "period": "test",
+  "role": "sealed test",
+  "synthetic": false,
+  "macro_mode": "asof_fallback",
+  "macro_revisions_ignored": true,
+  "sealed": {
+    "run_number": 1,
+    "git_commit": "92d78ea3f92d25675f011f900d9212ca085c94a0"
+  },
+  "n_origins": 24,
+  "origins": [
+    "2013-03-01",
+    "2013-06-01",
+    "2013-09-01",
+    "2013-12-01",
+    "2014-03-01",
+    "2014-06-01",
+    "2014-09-01",
+    "2014-12-01",
+    "2015-03-01",
+    "2015-06-01",
+    "2015-09-01",
+    "2015-12-01",
+    "2016-03-01",
+    "2016-06-01",
+    "2016-09-01",
+    "2016-12-01",
+    "2017-03-01",
+    "2017-06-01",
+    "2017-09-01",
+    "2017-12-01",
+    "2018-03-01",
+    "2018-06-01",
+    "2018-09-01",
+    "2018-12-01"
+  ],
+  "contestants": [
+    {
+      "name": "A_last_increment",
+      "window": 3
+    },
+    {
+      "name": "B_age_curve",
+      "donors": 8
+    },
+    {
+      "name": "C_hazard_macro",
+      "features": [
+        "unemployment",
+        "unemployment_change_12m",
+        "mortgage_rate",
+        "hpi_growth_12m"
+      ],
+      "knots": [
+        6,
+        12,
+        24,
+        36,
+        60
+      ],
+      "exit_window": 24,
+      "draws": 200,
+      "seed": 0,
+      "macro_revisions_ignored": true,
+      "macro_months_on_latest_fallback": 157,
+      "scenario": null
+    },
+    {
+      "name": "D_tsfm_chronos_bolt_tiny",
+      "model": "chronos_bolt_tiny",
+      "version": "amazon/chronos-bolt-tiny@a0e552de+chronos-forecasting-2.3.2",
+      "native_quantile_levels": [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9
+      ],
+      "batch_size": 64,
+      "torch_threads": 4,
+      "pretraining_cutoff": "undisclosed",
+      "cost": {
+        "calls": 24,
+        "series": 1596,
+        "wall_seconds": 6.2356405993923545,
+        "cpu_seconds": 20.390625,
+        "wall_ms_per_series": 3.907,
+        "cpu_ms_per_series": 12.776
+      }
+    },
+    {
+      "name": "D_tsfm_chronos2",
+      "model": "chronos2",
+      "version": "amazon/chronos-2@29ec3766+chronos-forecasting-2.3.2",
+      "native_quantile_levels": [
+        0.01,
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3,
+        0.35,
+        0.4,
+        0.45,
+        0.5,
+        0.55,
+        0.6,
+        0.65,
+        0.7,
+        0.75,
+        0.8,
+        0.85,
+        0.9,
+        0.95,
+        0.99
+      ],
+      "batch_size": 256,
+      "torch_threads": 4,
+      "pretraining_cutoff": "undisclosed",
+      "cost": {
+        "calls": 24,
+        "series": 1596,
+        "wall_seconds": 104.32749859895557,
+        "cpu_seconds": 358.8125,
+        "wall_ms_per_series": 65.368,
+        "cpu_ms_per_series": 224.82
+      }
+    },
+    {
+      "name": "D_tsfm_timesfm_2p5",
+      "model": "timesfm_2p5",
+      "version": "google/timesfm-2.5-200m-pytorch@1d952420+timesfm-3.0.2@git-8cb06283",
+      "native_quantile_levels": [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9
+      ],
+      "batch_size": 16,
+      "max_context": 512,
+      "torch_threads": 4,
+      "source_commit": "8cb0628371af142e16b8c232cc9fbf667ffb12f9",
+      "pretraining_cutoff": "undisclosed (components: Wikimedia to 2023-11, Google Trends to 2022-12)",
+      "cost": {
+        "calls": 24,
+        "series": 1596,
+        "wall_seconds": 572.2086258009076,
+        "cpu_seconds": 1856.75,
+        "wall_ms_per_series": 358.527,
+        "cpu_ms_per_series": 1163.377
+      }
+    }
+  ],
+  "n_contestants": 6,
+  "experiment": null,
+  "scores": {
+    "headline_horizon": 12,
+    "n_rows_headline": 9576,
+    "excluded_target_windows": [
+      [
+        "2020-01-01",
+        "2021-12-01"
+      ]
+    ],
+    "contestants": {
+      "A_last_increment": {
+        "n": 1596,
+        "mean_quantile_loss": 0.000311337091905612,
+        "wql_on_change": 0.3465378980721868,
+        "median_abs_error": 0.0008371432984124339,
+        "coverage_50": {
+          "nominal": 0.5,
+          "coverage": 0.2349624060150376,
+          "n_inside": 375,
+          "n": 1596,
+          "ci_low": 0.21481361781674277,
+          "ci_high": 0.2563839840858734,
+          "confidence": 0.95
+        },
+        "coverage_90": {
+          "nominal": 0.9,
+          "coverage": 0.4793233082706767,
+          "n_inside": 765,
+          "n": 1596,
+          "ci_low": 0.45489310042188885,
+          "ci_high": 0.5038528117832799,
+          "confidence": 0.95
+        },
+        "interval_score_90": 0.009108877848380666
+      },
+      "B_age_curve": {
+        "n": 1596,
+        "mean_quantile_loss": 0.0003601202763547559,
+        "wql_on_change": 0.40083667145894175,
+        "median_abs_error": 0.0010103955463526626,
+        "coverage_50": {
+          "nominal": 0.5,
+          "coverage": 0.224937343358396,
+          "n_inside": 359,
+          "n": 1596,
+          "ci_low": 0.2051270030182397,
+          "ci_high": 0.24606861692324614,
+          "confidence": 0.95
+        },
+        "coverage_90": {
+          "nominal": 0.9,
+          "coverage": 0.5413533834586466,
+          "n_inside": 864,
+          "n": 1596,
+          "ci_low": 0.5168370636083509,
+          "ci_high": 0.5656711119813117,
+          "confidence": 0.95
+        },
+        "interval_score_90": 0.009933158149574786
+      },
+      "C_hazard_macro": {
+        "n": 1596,
+        "mean_quantile_loss": 0.0005225732650678754,
+        "wql_on_change": 0.5816571348981531,
+        "median_abs_error": 0.0012886217425063474,
+        "coverage_50": {
+          "nominal": 0.5,
+          "coverage": 0.22180451127819548,
+          "n_inside": 354,
+          "n": 1596,
+          "ci_low": 0.20210335445387967,
+          "ci_high": 0.2428416461247529,
+          "confidence": 0.95
+        },
+        "coverage_90": {
+          "nominal": 0.9,
+          "coverage": 0.4091478696741855,
+          "n_inside": 653,
+          "n": 1596,
+          "ci_low": 0.3852721266778762,
+          "ci_high": 0.4334599117993801,
+          "confidence": 0.95
+        },
+        "interval_score_90": 0.016984610752759206
+      },
+      "D_tsfm_chronos2": {
+        "n": 1596,
+        "mean_quantile_loss": 0.0002745649562254056,
+        "wql_on_change": 0.30560818254022803,
+        "median_abs_error": 0.0009152216784523351,
+        "coverage_50": {
+          "nominal": 0.5,
+          "coverage": 0.4667919799498747,
+          "n_inside": 745,
+          "n": 1596,
+          "ci_low": 0.44242492089679797,
+          "ci_high": 0.4913185138569579,
+          "confidence": 0.95
+        },
+        "coverage_90": {
+          "nominal": 0.9,
+          "coverage": 0.8878446115288221,
+          "n_inside": 1417,
+          "n": 1596,
+          "ci_low": 0.871422519056285,
+          "ci_high": 0.9024041580649458,
+          "confidence": 0.95
+        },
+        "interval_score_90": 0.005822202696111967
+      },
+      "D_tsfm_chronos_bolt_tiny": {
+        "n": 1596,
+        "mean_quantile_loss": 0.00034312457638867663,
+        "wql_on_change": 0.3819193811789381,
+        "median_abs_error": 0.0012142050952412527,
+        "coverage_50": {
+          "nominal": 0.5,
+          "coverage": 0.42042606516290726,
+          "n_inside": 671,
+          "n": 1596,
+          "ci_low": 0.39642788393808626,
+          "ci_high": 0.4448063842454416,
+          "confidence": 0.95
+        },
+        "coverage_90": {
+          "nominal": 0.9,
+          "coverage": 0.8427318295739349,
+          "n_inside": 1345,
+          "n": 1596,
+          "ci_low": 0.8240507335429238,
+          "ci_high": 0.8597670247532204,
+          "confidence": 0.95
+        },
+        "interval_score_90": 0.007001004718511968
+      },
+      "D_tsfm_timesfm_2p5": {
+        "n": 1596,
+        "mean_quantile_loss": 0.0003072218368452676,
+        "wql_on_change": 0.3419573585999577,
+        "median_abs_error": 0.0008230202527680176,
+        "coverage_50": {
+          "nominal": 0.5,
+          "coverage": 0.5908521303258145,
+          "n_inside": 943,
+          "n": 1596,
+          "ci_low": 0.56654008820062,
+          "ci_high": 0.614727873322124,
+          "confidence": 0.95
+        },
+        "coverage_90": {
+          "nominal": 0.9,
+          "coverage": 0.8308270676691729,
+          "n_inside": 1326,
+          "n": 1596,
+          "ci_low": 0.8116446385110269,
+          "ci_high": 0.8484207662062749,
+          "confidence": 0.95
+        },
+        "interval_score_90": 0.008045631500436858
+      }
+    },
+    "loss_by_horizon": {
+      "D_tsfm_timesfm_2p5": {
+        "1": 4.656249249697641e-05,
+        "2": 6.633038072905332e-05,
+        "3": 8.863194881075341e-05,
+        "4": 0.000113305822833158,
+        "5": 0.0001327385919641006,
+        "6": 0.00015698823159996153,
+        "7": 0.00017721234269982804,
+        "8": 0.0002003412666503021,
+        "9": 0.00022544490733472557,
+        "10": 0.0002513088027435553,
+        "11": 0.0002827601059433427,
+        "12": 0.0003072218368452676
+      },
+      "D_tsfm_chronos_bolt_tiny": {
+        "1": 7.256119472463354e-05,
+        "2": 9.036530609170765e-05,
+        "3": 0.00011317463029564007,
+        "4": 0.0001325516316048009,
+        "5": 0.00015600729951210536,
+        "6": 0.00018083188305842993,
+        "7": 0.0002040913180939086,
+        "8": 0.0002307112002535389,
+        "9": 0.00025959731371684935,
+        "10": 0.00028682076582195215,
+        "11": 0.0003160551120213225,
+        "12": 0.00034312457638867663
+      },
+      "B_age_curve": {
+        "1": 3.2475953311210744e-05,
+        "2": 5.7242358443699254e-05,
+        "3": 8.516145231341236e-05,
+        "4": 0.00011167098922560113,
+        "5": 0.00013754754494773114,
+        "6": 0.00016843528549177173,
+        "7": 0.00019874760326143496,
+        "8": 0.00022752793699670483,
+        "9": 0.00026033224825676204,
+        "10": 0.00029433822960378504,
+        "11": 0.0003256512198495197,
+        "12": 0.0003601202763547559
+      },
+      "A_last_increment": {
+        "1": 2.643180460283067e-05,
+        "2": 5.0189440438612295e-05,
+        "3": 7.616045285995829e-05,
+        "4": 9.963309406906581e-05,
+        "5": 0.00012485581633750505,
+        "6": 0.0001530656356058107,
+        "7": 0.000177231782809115,
+        "8": 0.0002041555168624311,
+        "9": 0.00023020314270299377,
+        "10": 0.00025502412905879416,
+        "11": 0.0002814423368416458,
+        "12": 0.000311337091905612
+      },
+      "D_tsfm_chronos2": {
+        "1": 5.145518205373745e-05,
+        "2": 6.695157010271944e-05,
+        "3": 8.738297365724139e-05,
+        "4": 0.00010586597929504347,
+        "5": 0.0001257369568060565,
+        "6": 0.00014935977898042723,
+        "7": 0.00016775073794351279,
+        "8": 0.00018875912956956906,
+        "9": 0.00020967345770870284,
+        "10": 0.00023117518988176336,
+        "11": 0.0002526807778013225,
+        "12": 0.0002745649562254056
+      },
+      "C_hazard_macro": {
+        "1": 4.2216478971307756e-05,
+        "2": 8.452255051998306e-05,
+        "3": 0.00013285080851792566,
+        "4": 0.0001778735024164188,
+        "5": 0.0002217070548547652,
+        "6": 0.0002688138000363173,
+        "7": 0.00031352614844576887,
+        "8": 0.00035517396999660807,
+        "9": 0.0003976390052943418,
+        "10": 0.00044089185259107457,
+        "11": 0.0004815264285834335,
+        "12": 0.0005225732650678754
+      }
+    },
+    "comparison": {
+      "reference": "A_last_increment",
+      "overall_mean_quantile_loss": {
+        "A_last_increment": 0.000311337091905612,
+        "B_age_curve": 0.0003601202763547559,
+        "C_hazard_macro": 0.0005225732650678754,
+        "D_tsfm_chronos2": 0.0002745649562254056,
+        "D_tsfm_chronos_bolt_tiny": 0.00034312457638867663,
+        "D_tsfm_timesfm_2p5": 0.0003072218368452676
+      },
+      "dm_lag_horizon": 4,
+      "n_comparisons": 5,
+      "comparisons": [
+        {
+          "contestant": "B_age_curve",
+          "n_origins": 24,
+          "relative_error": 1.0249839479473077,
+          "dm": {
+            "statistic": 0.48262054381543606,
+            "p_value": 0.6339268757829928,
+            "mean_diff": 7.580457592929175e-05,
+            "n": 24,
+            "horizon": 4,
+            "kernel": "uniform"
+          },
+          "holm_p": 1.0
+        },
+        {
+          "contestant": "C_hazard_macro",
+          "n_origins": 24,
+          "relative_error": 1.6130087789830512,
+          "dm": {
+            "statistic": 1.2776103730947672,
+            "p_value": 0.2141326410740995,
+            "mean_diff": 0.00024362844445812042,
+            "n": 24,
+            "horizon": 4,
+            "kernel": "uniform"
+          },
+          "holm_p": 1.0
+        },
+        {
+          "contestant": "D_tsfm_chronos2",
+          "n_origins": 24,
+          "relative_error": 0.9439509926673,
+          "dm": {
+            "statistic": -1.0103789432611363,
+            "p_value": 0.322825745004199,
+            "mean_diff": -3.4748147896697005e-05,
+            "n": 24,
+            "horizon": 4,
+            "kernel": "uniform"
+          },
+          "holm_p": 1.0
+        },
+        {
+          "contestant": "D_tsfm_chronos_bolt_tiny",
+          "n_origins": 24,
+          "relative_error": 1.1758975073708235,
+          "dm": {
+            "statistic": 0.9053574102769919,
+            "p_value": 0.3746628651937839,
+            "mean_diff": 3.507204797755343e-05,
+            "n": 24,
+            "horizon": 4,
+            "kernel": "uniform"
+          },
+          "holm_p": 1.0
+        },
+        {
+          "contestant": "D_tsfm_timesfm_2p5",
+          "n_origins": 24,
+          "relative_error": 1.0566385219442027,
+          "dm": {
+            "statistic": -0.1382932307967853,
+            "p_value": 0.8912123356119146,
+            "mean_diff": -3.6300769840635937e-06,
+            "n": 24,
+            "horizon": 4,
+            "kernel": "uniform"
+          },
+          "holm_p": 1.0
+        }
+      ]
+    }
+  },
+  "seconds": 701.71,
+  "provenance": {
+    "created_utc": "2026-11-23T02:38:07.543741+00:00",
+    "config_hash": "d6120cf1b45a0f69cd0b9bfcf89ee3fd3a8fe3809d91dcf8ec008e341e45abbf",
+    "git": {
+      "commit": "92d78ea3f92d25675f011f900d9212ca085c94a0",
+      "dirty": false
+    },
+    "data": {
+      "curves": {
+        "path": "data\\interim\\freddie_sample\\curves.parquet",
+        "sha256": "5a3bb0c8ed9eba86c127e6104a4ceb074e93593b216bb2b5800de77ea5210e5e"
+      },
+      "macro_features": {
+        "path": "data\\interim\\freddie_sample\\macro_features.parquet",
+        "sha256": "322132fe2ad37cb8abdbdacb752b9caaadbbdde70ba5503ab44fe2833dd74faa"
+      }
+    },
+    "python": "3.12.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "packages": {
+      "reserve": "0.0.1",
+      "cleanroom": "0.2.0",
+      "polars": "2.1.0",
+      "numpy": "2.5.5",
+      "scipy": "1.18.1"
+    }
+  },
+  "config": {
+    "name": "freddie_test",
+    "seed": 0,
+    "data": {
+      "source": "freddie",
+      "raw_dir": "data/raw/freddie",
+      "fred_dir": "data/raw/fred",
+      "interim_dir": "data/interim/freddie_sample",
+      "checksums": "data/checksums.sha256"
+    },
+    "macro": {
+      "mode": "asof_fallback"
+    },
+    "evaluation": {
+      "period": "test",
+      "origins": {
+        "dev": {
+          "first": "2010-03",
+          "last": "2012-03"
+        },
+        "test": {
+          "first": "2013-03",
+          "last": "2018-12"
+        },
+        "recession": {
+          "first": "2007-03",
+          "last": "2009-03"
+        }
+      },
+      "step_months": 3,
+      "horizon": 12,
+      "min_history": 6,
+      "quantiles": [
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        0.9,
+        0.95
+      ],
+      "exclude_target_windows": [
+        [
+          "2020-01",
+          "2021-12"
+        ]
+      ]
+    },
+    "contestants": {
+      "A_last_increment": {
+        "window": 3
+      },
+      "B_age_curve": {
+        "donors": 8
+      },
+      "C_hazard_macro": {
+        "draws": 200,
+        "exit_window": 24
+      },
+      "tsfm": [
+        "chronos_bolt_tiny",
+        "chronos2",
+        "timesfm_2p5"
+      ]
+    },
+    "lock_dir": "locks",
+    "artifacts_dir": "artifacts/runs"
+  }
+}
