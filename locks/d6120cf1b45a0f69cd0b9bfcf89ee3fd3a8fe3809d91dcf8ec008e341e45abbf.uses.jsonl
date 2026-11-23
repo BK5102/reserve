@@ -1,0 +1,2 @@
+{"run_id": "20261123T022625Z_freddie_test_test_d6120cf1", "used_utc": "2026-11-23T02:26:25.833032+00:00", "status": "started", "git_commit": "92d78ea3f92d25675f011f900d9212ca085c94a0", "run_number": 1}
+{"run_id": "20261123T022625Z_freddie_test_test_d6120cf1", "used_utc": "2026-11-23T02:38:08.083109+00:00", "status": "finished", "git_commit": "92d78ea3f92d25675f011f900d9212ca085c94a0", "results": "artifacts\\runs\\20261123T022625Z_freddie_test_test_d6120cf1\\results.json"}
