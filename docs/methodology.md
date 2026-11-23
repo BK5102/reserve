@@ -19,7 +19,7 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 **M2. Data: Freddie Mac Single-Family Loan-Level Dataset sample files, plus FRED and ALFRED macro series.**
 - Why: both are free and public. The Freddie Mac sample is a simple random sample of 50,000 loans per full vintage year with the same fields as the full dataset ([General User Guide, Release 48, October 2026](https://www.freddiemac.com/fmac-resources/research/pdf/general_user_guide_july_2026.pdf), "Single-Family Loan-Level Dataset Sample"). That is small enough for a laptop and spans 1999 to the latest release, which covers the 2007 to 2009 recession. FRED is free with an API key, and its ALFRED archive keeps earlier versions of revised series, so forecasts can use the values that were known at the time.
 - Considered: Fannie Mae Single-Family Loan Performance Data (also free with registration). Kept as a possible second dataset; one dataset first, as in the agreed plan (`NEXT_PROJECTS_PLAN.md`). The full Freddie Mac dataset (about 49.5 million loans in Release 48, per the Release Notes) is too large for the first pass and is not needed for quarterly vintage curves.
-- Limitation: Freddie Mac loans are prime, conforming, fully amortizing fixed-rate mortgages in the Standard Dataset (User Guide, "Loan Selection Criteria"), not all consumer credit. The owner has not registered yet, so no real data exists in this repo; every pipeline is tested on synthetic data written in the exact file layout (M7).
+- Limitation: Freddie Mac loans are prime, conforming, fully amortizing fixed-rate mortgages in the Standard Dataset (User Guide, "Loan Selection Criteria"), not all consumer credit. Every pipeline was first tested on synthetic data written in the exact file layout (M7); the real sample was downloaded and passed the data-fit gate on 2026-11-21 (M47).
 
 **M3. CPU only, for every run including the full run.**
 - Why: the owner has no GPU, and Tells showed that a GPU-only step leaves results resting on one hard-to-repeat run (Tells limitations L15 and L16). PyTorch, when the optional `tsfm` extra is installed, comes from the CPU-only wheel index.
@@ -57,7 +57,7 @@ Status: no real data has been loaded yet. Every number in this file comes from d
   - Whether real files end lines with a trailing pipe: not stated. The loader accepts both.
   - Whether the sample files on Clarity follow the Release 47 layout today: the User Guide says the sample has the same fields as the full dataset, but no real file has been opened. `scripts/check_data_fit.py` prints the detected layout of every file it reads.
 - Considered: reading the field list from Freddie Mac's header file at run time. Rejected: the header file is a separate download, and hard-coding it with a character-level test against the official text catches a change equally well.
-- Limitation: until the owner registers and downloads a file, the loader has only been run on hand-built fake records (`tests/fixtures/freddie/`).
+- Limitation: before the real download (2026-11-21), the loader had only been run on hand-built fake records (`tests/fixtures/freddie/`). It has since read the full sample, 1999 to 2026.
 
 **M6. Every field is read as text first and cast explicitly, with strict casts.**
 - Why: a silent type guess could turn "03" into 3 in one file and keep "RA" as text in another. Strict casts make a layout surprise fail loudly instead of producing wrong numbers.
@@ -143,7 +143,7 @@ Status: no real data has been loaded yet. Every number in this file comes from d
 
 **M17. A synthetic portfolio with known answers, used only for tests and pipeline checks, never for a headline.**
 - What: `src/reserve/data/synthetic.py` writes fake loans in the exact Freddie Mac file layout (current release), plus FRED-style macro tables and the true expected curves. Every synthetic record is marked: seller and servicer "SYNTHETIC", property state "ZZ".
-- Why: no real data exists yet, and a simulator whose true answer is known is the only way to check that the pipeline computes what it claims. Tells used real public benchmark data; Reserve cannot until the owner registers.
+- Why: no real data existed yet when this was built (it arrived on 2026-11-21), and a simulator whose true answer is known is the only way to check that the pipeline computes what it claims. Tells used real public benchmark data; Reserve could not until the owner registered.
 - Considered: waiting for real data before building anything. Rejected: the loader, builder, models, and checks can all be tested now, and the data-fit check is ready the day the files arrive.
 - Limitation: a simulator only contains the patterns written into it. A model that wins on synthetic data proves the plumbing works, nothing about real loans. No synthetic number appears in `docs/findings.md`.
 

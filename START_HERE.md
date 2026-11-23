@@ -30,6 +30,6 @@ The `diagrams/` folder has the same diagrams as images. The diagrams inside each
 
 ## Honest limits
 
-- No results exist yet. Every bracketed number in the pitch scripts is a placeholder to fill with something you measure.
+- Results now exist: every project has a sealed result in its README and `docs/findings.md` (Tells 2026-11-17, Reserve and Culprit 2026-11-23). The bracketed numbers in the `PLAN.md` pitch scripts were placeholders written before any result; quote the findings instead.
 - Dataset names, TSFM capabilities, and the SR 26-2 details come from web sources and must be verified at build time. The plans say where. Tells datasets were measured on 2026-11-10 (`tells/docs/data-fit.md`).
 - Culprit uses simulated data only. Say so every time you present it.
