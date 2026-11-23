@@ -224,3 +224,14 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
   - The flagged fallback affects only older training months. I measured its cost: mortgage rates were never revised, and house-price growth can be off by about 0.4 of a typical swing before 2012.
   - The test now compares three pretrained models from two labs.
 - **How to say it:** "Where the historical record of what was known exists, I use it. Where it does not, I use today's value and flag it, I measured how much that could matter, and I made the choice before any model saw the data."
+
+### Step 24. Development runs on the real data, then freezing the plan
+
+- **What I did:** ran every contestant on the development period, the 2007-2009 recession (descriptive only), the thin-history experiment and the hypothetical scenarios, all on the real Freddie Mac data. Then I wrote down the development winner before sealing (`docs/decisions.md` D29).
+- **Why:** development runs catch broken plumbing on real data, and writing down the practice result first makes any change on the test visible.
+- **What else I considered:** tuning settings after these runs. I did not, because that would fit the plan to what I had seen.
+- **Cause and effect:**
+  - **Point forecasts:** on development, all three pretrained models matched or beat the best simple baseline (`A_last_increment`, the reference).
+  - **Intervals:** the pretrained models' 90% intervals covered 82 to 88% of outcomes, against 31 to 42% for the classical methods.
+  - **Recession:** coverage dropped to 39 to 67% and the edge mostly disappeared. The sealed test checks whether the development edge holds on 2013 to 2018.
+- **How to say it:** "On practice data the pretrained models matched the best simple baseline and had far more honest intervals, but not in the 2008 recession, and I wrote that down before sealing so the test result could not be spun."
