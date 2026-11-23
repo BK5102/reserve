@@ -8,11 +8,11 @@ This is the guide to read before talking about Reserve with a recruiter, a hirin
 - **Cause and effect**: what happened because of this step, including problems it exposed
 - **How to say it**: one or two sentences you can say out loud
 
-The technical detail behind each step is in `docs/methodology.md` (numbered M1, M2, ...), and the dated diary is in `docs/decisions.md`. No result exists yet, so nothing here claims one.
+The technical detail behind each step is in `docs/methodology.md` (numbered M1, M2, ...), and the dated diary is in `docs/decisions.md`. One sealed result exists (Step 25 and `docs/findings.md`); every other number is labelled development.
 
-## Elevator pitch (draft, no results yet)
+## Elevator pitch
 
-"Lenders watch each quarter's batch of loans, called a vintage, the way a school tracks a graduating class: what share has ever gone seriously late by each month of age. I am testing whether a pretrained time series model forecasts the next year of those curves better than the methods lenders use, with honest uncertainty ranges, on public Freddie Mac mortgage data. The pipeline, the classical baselines, three pretrained models, and the honesty checks are built and tested against a simulator with known answers, and every real-data command has been rehearsed end to end; the real run is waiting on the data download, and I have no result to claim yet."
+"Lenders watch each quarter's batch of loans, called a vintage, the way a school tracks a graduating class: what share has ever gone seriously late by each month of age. I tested whether pretrained time series models forecast the next year of those curves better than classical methods, on public Freddie Mac mortgage data, in a test I pre-registered and ran once. They were no more accurate than a simple baseline, but their 90% uncertainty ranges were far more honest, covering 83 to 89% of outcomes against about half for the classical methods, whose ranges were never recalibrated."
 
 ---
 

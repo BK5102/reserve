@@ -48,7 +48,7 @@ Install with every extra you want in one command, because `uv sync` removes extr
 | Vintage curves: cumulative share ever 90+ days late or defaulted, by original loan count | `src/reserve/data/vintages.py` | Hand-computed values, a brute-force recount, reconciliation on every build, past-only cutoffs |
 | Macro series (unemployment, 30-year mortgage rate, FHFA house prices) as known at the time, from ALFRED | `src/reserve/data/macro.py` | Fake FRED cassette; leak test deleting and corrupting later releases |
 | Synthetic portfolio with known answers (tests only) | `src/reserve/data/synthetic.py` | The pipeline recovers every simulated event exactly |
-| Data-fit check | `scripts/check_data_fit.py` | Synthetic run; real numbers pending |
+| Data-fit check | `scripts/check_data_fit.py` | Synthetic run, and the real data (gate passed 2026-11-21) |
 | Contestants: A last pace persists, B average age curve, C hazard regression on age and past-only macro, D TSFMs: Chronos-Bolt-tiny and Chronos-2 (`tsfm` extra) and TimesFM 2.5 (`timesfm` extra, from GitHub at a pinned commit) | `src/reserve/models/` | Values by hand, known coefficients recovered, corrupted-future leak tests; each TSFM checked against the real model when its extra is installed (TimesFM in a scratch environment) |
 | Rolling origins and scores from the shared Cleanroom (splits, quantile losses, coverage, Diebold-Mariano, Holm, sealed runs) | `src/reserve/evaluation/` | Hand-computed scores; sealed-run guard refuses a missing or changed lock |
 | Thin-history experiment: the portfolio is 6, 12, or 24 months old, same targets at every level, dev only | `src/reserve/evaluation/experiments.py` | A spy contestant sees no older vintage; corrupted-future leak test; Holm across levels |
@@ -73,9 +73,9 @@ The testing toolkit is the shared [Cleanroom](https://github.com/BK5102/tells/tr
 - `docs/methodology.md`: every choice, why, what else was considered, its limitation, and the limitations register.
 - `docs/explain-the-project.md`: the project step by step, with a sentence to say for each step.
 - `docs/decisions.md`: the dated diary.
-- `docs/data-fit.md`: can the data answer the question (real numbers pending).
+- `docs/data-fit.md`: can the data answer the question (yes; real numbers measured 2026-11-21).
 - `docs/tsfm-notes.md`: what each TSFM's documentation says, and what is unverified.
-- `docs/findings.md`: results (none yet).
+- `docs/findings.md`: the sealed result (2026-11-23).
 - `PLAN.md`: diagrams, glossary, requirements, and the 30-day plan.
 
 ## Not built yet
