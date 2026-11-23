@@ -1,0 +1,78 @@
+{
+  "config_hash": "d6120cf1b45a0f69cd0b9bfcf89ee3fd3a8fe3809d91dcf8ec008e341e45abbf",
+  "sealed_utc": "2026-11-23T02:25:17.286517+00:00",
+  "git": {
+    "commit": "e9670302f39468f65ebae1938196860e29757dba",
+    "dirty": true
+  },
+  "note": "2013Q1-2018Q4 origins, horizon 12, plan frozen before any test score",
+  "config": {
+    "artifacts_dir": "artifacts/runs",
+    "contestants": {
+      "A_last_increment": {
+        "window": 3
+      },
+      "B_age_curve": {
+        "donors": 8
+      },
+      "C_hazard_macro": {
+        "draws": 200,
+        "exit_window": 24
+      },
+      "tsfm": [
+        "chronos_bolt_tiny",
+        "chronos2",
+        "timesfm_2p5"
+      ]
+    },
+    "data": {
+      "checksums": "data/checksums.sha256",
+      "fred_dir": "data/raw/fred",
+      "interim_dir": "data/interim/freddie_sample",
+      "raw_dir": "data/raw/freddie",
+      "source": "freddie"
+    },
+    "evaluation": {
+      "exclude_target_windows": [
+        [
+          "2020-01",
+          "2021-12"
+        ]
+      ],
+      "horizon": 12,
+      "min_history": 6,
+      "origins": {
+        "dev": {
+          "first": "2010-03",
+          "last": "2012-03"
+        },
+        "recession": {
+          "first": "2007-03",
+          "last": "2009-03"
+        },
+        "test": {
+          "first": "2013-03",
+          "last": "2018-12"
+        }
+      },
+      "period": "test",
+      "quantiles": [
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        0.9,
+        0.95
+      ],
+      "step_months": 3
+    },
+    "lock_dir": "locks",
+    "macro": {
+      "mode": "asof_fallback"
+    },
+    "name": "freddie_test",
+    "seed": 0
+  },
+  "data_sha256": "20202ced7e2098213b4c08ad6bb7a718669f0cbc2a66066df26abbd0ab2a82df"
+}
