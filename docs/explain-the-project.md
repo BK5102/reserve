@@ -235,3 +235,14 @@ The technical detail behind each step is in `docs/methodology.md` (numbered M1, 
   - **Intervals:** the pretrained models' 90% intervals covered 82 to 88% of outcomes, against 31 to 42% for the classical methods.
   - **Recession:** coverage dropped to 39 to 67% and the edge mostly disappeared. The sealed test checks whether the development edge holds on 2013 to 2018.
 - **How to say it:** "On practice data the pretrained models matched the best simple baseline and had far more honest intervals, but not in the 2008 recession, and I wrote that down before sealing so the test result could not be spun."
+
+### Step 25. The sealed test, once
+
+- **What I did:** sealed the plan with the raw-file checksums, committed the lock, and ran the 2013 to 2018 test once (run `20261123T022625Z_freddie_test_test_d6120cf1`).
+- **Why:** a result only counts if the plan existed before it, and one run means no picking the best of several tries.
+- **What else I considered:** running the optional agent write-up, which needs paid API calls. I skipped it to spend nothing.
+- **Cause and effect:**
+  - **Accuracy:** no pretrained model was significantly more accurate than the simple "last change continues" reference. With about six independent years of outcomes, a small edge cannot be told from zero.
+  - **Intervals:** their 90% ranges were honest (83 to 89% coverage). The classical methods' ranges covered only about half the outcomes.
+  - **Macro model:** the one model that reads the economy did worst.
+- **How to say it:** "On sealed Freddie Mac data the pretrained forecasters were no more accurate than a simple baseline, but they knew how uncertain they were far better, and I report both, along with the catch that the baselines' ranges were never recalibrated."

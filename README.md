@@ -6,7 +6,7 @@ Can a pretrained time series foundation model (TSFM) forecast how each batch of 
 
 Lenders track every quarter's new loans as a group, called a vintage, the way a school tracks a graduating class: what share of the class has ever gone 90 or more days late by each month of age. Reserve forecasts the next 12 months of those curves with three classical methods and pretrained models, under an evaluation built so no model can see the future.
 
-**Status: pipeline, three pretrained models, and the agent built and tested on synthetic data; the real-data commands are rehearsed end to end in CI. No result exists yet.** The real Freddie Mac sample and ALFRED macro tables are downloaded and the data-fit gate passed on them ([`docs/data-fit.md`](docs/data-fit.md)); next are the development runs and sealing, in the order of [`docs/runbook.md`](docs/runbook.md). Every number produced so far comes from a simulator and is a pipeline check, not a finding.
+**Status: one sealed result (2026-11-23), in [`docs/findings.md`](docs/findings.md).** On the Freddie Mac sample, 2013 to 2018 origins, no pretrained model forecast 12-month delinquency significantly better than the best classical baseline, but all three gave far more honest 90% intervals (83 to 89% coverage against 41 to 54%). Development numbers are in `docs/decisions.md` D29 and are not results.
 
 **Limits on the first screen:** the data is Freddie Mac's public sample of prime, conforming, fixed-rate US mortgages, not all consumer credit, and not any bank's own loans. The 2007 to 2009 recession is a single episode and is reported descriptively only. COVID forbearance months (2020 to 2021) are excluded from scoring.
 
